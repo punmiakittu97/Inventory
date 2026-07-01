@@ -19,65 +19,33 @@
     --text-dim: #8892aa;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    min-height: 100vh;
-  }
-  header {
-    padding: 24px 40px 16px;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    align-items: baseline;
-    gap: 16px;
-  }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; min-height: 100vh; }
+  header { padding: 24px 40px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 16px; }
   header h1 { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
   header span { color: var(--text-dim); font-size: 0.85rem; }
-  nav {
-    display: flex;
-    gap: 8px;
-    padding: 16px 40px;
-    border-bottom: 1px solid var(--border);
-    flex-wrap: wrap;
-  }
-  nav a {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-dim);
-    padding: 6px 16px;
-    border-radius: 20px;
-    cursor: pointer;
-    font-size: 0.82rem;
-    text-decoration: none;
-    transition: all 0.2s;
-  }
-  nav a:hover {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-  }
+  nav { display: flex; gap: 8px; padding: 16px 40px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  nav a { background: var(--surface); border: 1px solid var(--border); color: var(--text-dim); padding: 6px 16px; border-radius: 20px; font-size: 0.82rem; text-decoration: none; transition: all 0.2s; }
+  nav a:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-  /* tab visibility via :target */
+  /* tab visibility via :target — layers is last in DOM, shown by default */
   .panel { display: none; padding: 32px 40px; }
   .panel:target { display: block; }
-  /* layers is last in DOM; show it by default */
   #layers { display: block; }
   #components:target ~ #layers,
   #statemachine:target ~ #layers,
   #auditflow:target ~ #layers,
-  #mcptools:target ~ #layers { display: none; }
+  #mcptools:target ~ #layers,
+  #semantic:target ~ #layers { display: none; }
 
-  /* active nav highlight via :has() */
+  /* active nav highlight */
   body:not(:has(:target)) a[href="#layers"],
   body:has(#layers:target)       a[href="#layers"],
   body:has(#components:target)   a[href="#components"],
   body:has(#statemachine:target) a[href="#statemachine"],
   body:has(#auditflow:target)    a[href="#auditflow"],
-  body:has(#mcptools:target)     a[href="#mcptools"] {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
+  body:has(#mcptools:target)     a[href="#mcptools"],
+  body:has(#semantic:target)     a[href="#semantic"] {
+    background: var(--accent); border-color: var(--accent); color: #fff;
   }
 
   /* layer diagram */
@@ -95,10 +63,11 @@
   .service { border-color: var(--accent3); } .service .name { color: var(--accent3); }
   .repo    { border-color: var(--accent4); } .repo .name    { color: var(--accent4); }
   .db      { border-color: var(--accent5); } .db .name      { color: var(--accent5); }
-  .mcp-box { border-color: #b06cff; }        .mcp-box .name { color: #b06cff; }
+  .mcp-box { border-color: #b06cff; } .mcp-box .name { color: #b06cff; }
+  .sem-box { border-color: #38bdf8; } .sem-box .name { color: #38bdf8; }
   .side-branch { display: flex; flex-direction: row; width: 100%; gap: 16px; align-items: center; }
   .side-branch .main { flex: 2; }
-  .side-branch .branch { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0; }
+  .side-branch .branch { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; }
   .branch-line { width: 32px; height: 2px; background: var(--border); margin-top: 24px; }
 
   /* component map */
@@ -146,14 +115,36 @@
   .mcp-param-desc { color: var(--text-dim); }
   .mcp-param-opt { font-size: 0.65rem; padding: 1px 5px; border-radius: 6px; background: var(--surface2); color: var(--text-dim); flex-shrink: 0; }
 
+  /* semantic search flow */
+  .sem-flow { display: flex; flex-direction: column; gap: 32px; max-width: 900px; }
+  .sem-row { display: flex; align-items: center; gap: 0; flex-wrap: wrap; }
+  .sem-step { flex: 1; min-width: 130px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; text-align: center; }
+  .sem-step.trigger { border-color: #ffd166; }
+  .sem-step.embed   { border-color: #38bdf8; }
+  .sem-step.search  { border-color: #38bdf8; }
+  .sem-step.llm     { border-color: #b06cff; }
+  .sem-step.out     { border-color: #43e097; }
+  .sem-step .icon   { font-size: 1.4rem; margin-bottom: 5px; }
+  .sem-step .name   { font-size: 0.82rem; font-weight: 700; margin-bottom: 3px; }
+  .sem-step.trigger .name { color: #ffd166; }
+  .sem-step.embed   .name { color: #38bdf8; }
+  .sem-step.search  .name { color: #38bdf8; }
+  .sem-step.llm     .name { color: #b06cff; }
+  .sem-step.out     .name { color: #43e097; }
+  .sem-step .desc   { font-size: 0.7rem; color: var(--text-dim); line-height: 1.4; }
+  .sem-arrow { align-self: center; padding: 0 6px; color: var(--text-dim); font-size: 1.2rem; flex-shrink: 0; }
+  .sem-note { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; font-size: 0.78rem; color: var(--text-dim); line-height: 1.6; }
+  .sem-note strong { color: var(--text); }
+
   h2 { font-size: 1.05rem; font-weight: 700; margin-bottom: 20px; color: var(--text-dim); }
+  h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 14px; color: var(--text-dim); }
 </style>
 </head>
 <body>
 
 <header>
   <h1>Incident Intake Microservice</h1>
-  <span>Spring Boot 3.5 · Java 21 · Architecture Overview</span>
+  <span>Spring Boot 3.5 &middot; Java 21 &middot; Architecture Overview</span>
 </header>
 
 <nav>
@@ -162,15 +153,16 @@
   <a href="#statemachine">State Machine</a>
   <a href="#auditflow">Audit Flow</a>
   <a href="#mcptools">MCP Tools</a>
+  <a href="#semantic">Semantic Search</a>
 </nav>
 
-<!-- panels: components, statemachine, auditflow, mcptools first; layers LAST for CSS default -->
-
+<!-- ── COMPONENT MAP ── -->
 <div id="components" class="panel">
   <h2>Package &amp; Component Map</h2>
   <div class="pkg-grid">
+
     <div class="pkg" style="border-color:#6c8cff44">
-      <div class="pkg-header" style="color:#6c8cff; background:#6c8cff11">incident · api</div>
+      <div class="pkg-header" style="color:#6c8cff;background:#6c8cff11">incident &middot; api</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#6c8cff"></span>IncidentController</div>
         <div class="pkg-file"><span class="dot" style="background:#6c8cff"></span>CreateIncidentRequest</div>
@@ -178,29 +170,33 @@
         <div class="pkg-file"><span class="dot" style="background:#6c8cff"></span>IncidentResponse</div>
       </div>
     </div>
+
     <div class="pkg" style="border-color:#43e09744">
-      <div class="pkg-header" style="color:#43e097; background:#43e09711">incident · application</div>
+      <div class="pkg-header" style="color:#43e097;background:#43e09711">incident &middot; application</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#43e097"></span>IncidentService</div>
         <div class="pkg-file"><span class="dot" style="background:#43e097"></span>CreateResult (record)</div>
       </div>
     </div>
+
     <div class="pkg" style="border-color:#ffd16644">
-      <div class="pkg-header" style="color:#ffd166; background:#ffd16611">incident · domain</div>
+      <div class="pkg-header" style="color:#ffd166;background:#ffd16611">incident &middot; domain</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#ffd166"></span>Incident (entity)</div>
         <div class="pkg-file"><span class="dot" style="background:#ffd166"></span>Severity (enum)</div>
         <div class="pkg-file"><span class="dot" style="background:#ffd166"></span>IncidentStatus (enum)</div>
       </div>
     </div>
+
     <div class="pkg" style="border-color:#ef8c3444">
-      <div class="pkg-header" style="color:#ef8c34; background:#ef8c3411">incident · infrastructure</div>
+      <div class="pkg-header" style="color:#ef8c34;background:#ef8c3411">incident &middot; infrastructure</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#ef8c34"></span>IncidentRepository</div>
       </div>
     </div>
+
     <div class="pkg" style="border-color:#ff6b9d44">
-      <div class="pkg-header" style="color:#ff6b9d; background:#ff6b9d11">audit</div>
+      <div class="pkg-header" style="color:#ff6b9d;background:#ff6b9d11">audit</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#ff6b9d"></span>IncidentAuditLog (entity)</div>
         <div class="pkg-file"><span class="dot" style="background:#ff6b9d"></span>AuditLogRepository</div>
@@ -209,35 +205,53 @@
         <div class="pkg-file"><span class="dot" style="background:#ff6b9d"></span>AuditLogResponse</div>
       </div>
     </div>
+
+    <div class="pkg" style="border-color:#38bdf844">
+      <div class="pkg-header" style="color:#38bdf8;background:#38bdf811">resolution <span style="font-size:0.65rem;opacity:0.7">&nbsp;NEW</span></div>
+      <div class="pkg-files">
+        <div class="pkg-file"><span class="dot" style="background:#38bdf8"></span>ResolutionService</div>
+        <div class="pkg-file"><span class="dot" style="background:#38bdf8"></span>IncidentVectorIndexer</div>
+        <div class="pkg-file"><span class="dot" style="background:#38bdf8"></span>IncidentResolvedEvent</div>
+        <div class="pkg-file"><span class="dot" style="background:#38bdf8"></span>ResolutionSuggestionResponse</div>
+        <div class="pkg-file"><span class="dot" style="background:#38bdf8"></span>SimilarIncident</div>
+      </div>
+    </div>
+
     <div class="pkg" style="border-color:#b06cff44">
-      <div class="pkg-header" style="color:#b06cff; background:#b06cff11">mcp</div>
+      <div class="pkg-header" style="color:#b06cff;background:#b06cff11">mcp</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#b06cff"></span>IncidentMcpTools</div>
       </div>
     </div>
+
     <div class="pkg" style="border-color:#60a5fa44">
-      <div class="pkg-header" style="color:#60a5fa; background:#60a5fa11">common · exception</div>
+      <div class="pkg-header" style="color:#60a5fa;background:#60a5fa11">common &middot; exception</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#60a5fa"></span>GlobalExceptionHandler</div>
         <div class="pkg-file"><span class="dot" style="background:#60a5fa"></span>IncidentNotFoundException</div>
         <div class="pkg-file"><span class="dot" style="background:#60a5fa"></span>InvalidStatusTransitionException</div>
       </div>
     </div>
+
     <div class="pkg" style="border-color:#34d39944">
-      <div class="pkg-header" style="color:#34d399; background:#34d39911">common · logging</div>
+      <div class="pkg-header" style="color:#34d399;background:#34d39911">common &middot; logging</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#34d399"></span>RequestLoggingFilter</div>
       </div>
     </div>
+
     <div class="pkg" style="border-color:#a78bfa44">
-      <div class="pkg-header" style="color:#a78bfa; background:#a78bfa11">config</div>
+      <div class="pkg-header" style="color:#a78bfa;background:#a78bfa11">config</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#a78bfa"></span>McpToolsConfig</div>
+        <div class="pkg-file"><span class="dot" style="background:#a78bfa"></span>VectorStoreConfig <span style="font-size:0.65rem;opacity:0.7">NEW</span></div>
       </div>
     </div>
+
   </div>
 </div>
 
+<!-- ── STATE MACHINE ── -->
 <div id="statemachine" class="panel">
   <h2>Incident Status State Machine</h2>
   <div class="sm-wrap">
@@ -267,46 +281,53 @@
       <text x="404" y="107" text-anchor="middle" fill="#8892aa" font-size="9">PATCH status</text>
       <line x1="571" y1="112" x2="633" y2="112" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr)"/>
       <text x="602" y="107" text-anchor="middle" fill="#8892aa" font-size="9">PATCH status</text>
+      <!-- vector indexing fires on RESOLVED -->
+      <path d="M505,152 Q505,230 640,230" fill="none" stroke="#38bdf8" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="560" y="248" text-anchor="middle" fill="#38bdf8" font-size="9">&#x25BA; indexes to VectorStore</text>
       <path d="M95,150 Q95,210 505,210 Q635,210 695,152" fill="none" stroke="#fc8181" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arr-red)"/>
-      <text x="395" y="225" text-anchor="middle" fill="#fc8181" font-size="10">&#x26D4; Invalid (skipped transitions &#x2192; HTTP 422)</text>
-      <rect x="230" y="180" width="310" height="26" rx="6" fill="#22263a" stroke="#2e3250"/>
-      <text x="385" y="197" text-anchor="middle" fill="#8892aa" font-size="10">Every valid transition &#x2192; IncidentAuditLog row persisted</text>
+      <text x="395" y="200" text-anchor="middle" fill="#fc8181" font-size="10">&#x26D4; Invalid (skipped transitions &#x2192; HTTP 422)</text>
+      <rect x="230" y="155" width="310" height="22" rx="6" fill="#22263a" stroke="#2e3250"/>
+      <text x="385" y="170" text-anchor="middle" fill="#8892aa" font-size="10">Every valid transition &#x2192; IncidentAuditLog row persisted</text>
     </svg>
   </div>
 </div>
 
+<!-- ── AUDIT FLOW ── -->
 <div id="auditflow" class="panel">
   <h2>Audit Trail Flow</h2>
   <div class="audit-flow">
-    <div class="af-step" style="border-color:#6c8cff44"><div class="icon">&#x1F310;</div><div class="name">Client</div><div class="desc">PATCH /incidents/{id}/status<br>{ status, changedBy, notes }</div><div class="badge" style="background:#6c8cff22; color:#6c8cff">HTTP</div></div>
+    <div class="af-step" style="border-color:#6c8cff44"><div class="icon">&#x1F310;</div><div class="name">Client</div><div class="desc">PATCH /incidents/{id}/status<br>{ status, changedBy, notes }</div><div class="badge" style="background:#6c8cff22;color:#6c8cff">HTTP</div></div>
     <div class="af-arrow">&#x2192;</div>
-    <div class="af-step" style="border-color:#6c8cff44"><div class="icon">&#x1F39B;&#xFE0F;</div><div class="name">IncidentController</div><div class="desc">Validates request<br>delegates to service</div><div class="badge" style="background:#6c8cff22; color:#6c8cff">@Valid</div></div>
+    <div class="af-step" style="border-color:#6c8cff44"><div class="icon">&#x1F39B;&#xFE0F;</div><div class="name">IncidentController</div><div class="desc">Validates request<br>delegates to service</div><div class="badge" style="background:#6c8cff22;color:#6c8cff">@Valid</div></div>
     <div class="af-arrow">&#x2192;</div>
-    <div class="af-step" style="border-color:#43e09744"><div class="icon">&#x2699;&#xFE0F;</div><div class="name">IncidentService</div><div class="desc">Validates transition<br>Updates status<br>Sets resolvedAt if RESOLVED</div><div class="badge" style="background:#43e09722; color:#43e097">Business Logic</div></div>
+    <div class="af-step" style="border-color:#43e09744"><div class="icon">&#x2699;&#xFE0F;</div><div class="name">IncidentService</div><div class="desc">Validates transition<br>Updates status<br>Sets resolvedAt if RESOLVED</div><div class="badge" style="background:#43e09722;color:#43e097">Business Logic</div></div>
     <div class="af-arrow">&#x2192;</div>
-    <div class="af-step" style="border-color:#ff6b9d44"><div class="icon">&#x1F4CB;</div><div class="name">AuditService</div><div class="desc">Creates AuditLog row<br>{ prevStatus, newStatus,<br>changedBy, changedAt, notes }</div><div class="badge" style="background:#ff6b9d22; color:#ff6b9d">Audit</div></div>
+    <div class="af-step" style="border-color:#ff6b9d44"><div class="icon">&#x1F4CB;</div><div class="name">AuditService</div><div class="desc">Creates AuditLog row<br>{ prevStatus, newStatus,<br>changedBy, changedAt, notes }</div><div class="badge" style="background:#ff6b9d22;color:#ff6b9d">Audit</div></div>
     <div class="af-arrow">&#x2192;</div>
-    <div class="af-step" style="border-color:#ef8c3444"><div class="icon">&#x1F5C4;&#xFE0F;</div><div class="name">Database</div><div class="desc">incident_audit_logs table<br>ordered by changedAt ASC</div><div class="badge" style="background:#ef8c3422; color:#ef8c34">Persisted</div></div>
+    <div class="af-step" style="border-color:#ef8c3444"><div class="icon">&#x1F5C4;&#xFE0F;</div><div class="name">Database</div><div class="desc">incident_audit_logs table<br>ordered by changedAt ASC</div><div class="badge" style="background:#ef8c3422;color:#ef8c34">Persisted</div></div>
   </div>
-  <div style="margin-top:32px; max-width:860px">
+  <div style="margin-top:32px;max-width:860px">
     <h2>Querying Audit History</h2>
     <div class="audit-flow">
-      <div class="af-step" style="border-color:#6c8cff44; flex:0.8"><div class="icon">&#x1F916;</div><div class="name">Client or AI Agent</div><div class="desc">GET /incidents/{id}/history<br>or MCP: get_incident_history</div></div>
+      <div class="af-step" style="border-color:#6c8cff44;flex:0.8"><div class="icon">&#x1F916;</div><div class="name">Client or AI Agent</div><div class="desc">GET /incidents/{id}/history<br>or MCP: get_incident_history</div></div>
       <div class="af-arrow">&#x2192;</div>
       <div class="af-step" style="border-color:#ff6b9d44"><div class="icon">&#x1F4CB;</div><div class="name">AuditController / MCP</div><div class="desc">Thin delegates to AuditService<br>.getHistory(incidentId)</div></div>
       <div class="af-arrow">&#x2192;</div>
       <div class="af-step" style="border-color:#ef8c3444"><div class="icon">&#x1F5C4;&#xFE0F;</div><div class="name">AuditLogRepository</div><div class="desc">findByIncidentIdOrderByChangedAtAsc<br>Returns chronological log</div></div>
       <div class="af-arrow">&#x2192;</div>
-      <div class="af-step" style="border-color:#43e09744; flex:0.8"><div class="icon">&#x2705;</div><div class="name">Response</div><div class="desc">[ { previousStatus, newStatus,<br>changedBy, changedAt, notes }, &#x2026; ]</div></div>
+      <div class="af-step" style="border-color:#43e09744;flex:0.8"><div class="icon">&#x2705;</div><div class="name">Response</div><div class="desc">[ { previousStatus, newStatus,<br>changedBy, changedAt, notes }, &#x2026; ]</div></div>
     </div>
   </div>
 </div>
 
+<!-- ── MCP TOOLS ── -->
 <div id="mcptools" class="panel">
   <h2>MCP Tools &#x2014; AI Agent Consumption</h2>
+
   <div class="mcp-section">
     <div class="mcp-kind-label read">&#x1F50D; Read &#x2014; no state change</div>
     <div class="mcp-grid">
+
       <div class="mcp-card read">
         <div class="mcp-card-head"><span class="mcp-tool-name">get_incident</span><span class="mcp-badge read">READ</span></div>
         <div class="mcp-card-body">
@@ -316,17 +337,19 @@
           </div>
         </div>
       </div>
+
       <div class="mcp-card read">
         <div class="mcp-card-head"><span class="mcp-tool-name">list_incidents</span><span class="mcp-badge read">READ</span></div>
         <div class="mcp-card-body">
           <div class="mcp-desc">List incidents with optional filters. All parameters are combinable.</div>
           <div class="mcp-params">
-            <div class="mcp-param"><span class="mcp-param-name">severity</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">LOW · MEDIUM · HIGH · CRITICAL</span></div>
-            <div class="mcp-param"><span class="mcp-param-name">status</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">OPEN · IN_PROGRESS · RESOLVED · CLOSED</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">severity</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">LOW &middot; MEDIUM &middot; HIGH &middot; CRITICAL</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">status</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">OPEN &middot; IN_PROGRESS &middot; RESOLVED &middot; CLOSED</span></div>
             <div class="mcp-param"><span class="mcp-param-name">reportedBy</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">Filter by reporter name or ID</span></div>
           </div>
         </div>
       </div>
+
       <div class="mcp-card read">
         <div class="mcp-card-head"><span class="mcp-tool-name">get_incident_history</span><span class="mcp-badge read">READ</span></div>
         <div class="mcp-card-body">
@@ -336,70 +359,151 @@
           </div>
         </div>
       </div>
+
+      <div class="mcp-card read" style="border-left-color:#38bdf8">
+        <div class="mcp-card-head"><span class="mcp-tool-name" style="color:#38bdf8">suggest_resolution</span><span class="mcp-badge read" style="background:#38bdf833;color:#38bdf8">READ &middot; AI</span></div>
+        <div class="mcp-card-body">
+          <div class="mcp-desc">Suggest a resolution by semantically searching past resolved incidents and generating an AI-powered action plan. Requires resolved incidents to be indexed first.</div>
+          <div class="mcp-params">
+            <div class="mcp-param"><span class="mcp-param-name">id</span><span class="mcp-param-desc">Internal UUID of the incident to analyse</span></div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
+
   <div class="mcp-section">
     <div class="mcp-kind-label mutation">&#x270F;&#xFE0F; Mutation &#x2014; modifies state</div>
     <div class="mcp-grid">
+
       <div class="mcp-card mutation">
         <div class="mcp-card-head"><span class="mcp-tool-name">create_incident</span><span class="mcp-badge mutation">MUTATION</span></div>
         <div class="mcp-card-body">
           <div class="mcp-desc">Create a new incident. Idempotent &#x2014; returns the existing incident if the same <code style="font-size:0.75rem;color:#b06cff">externalReferenceId</code> was already submitted.</div>
           <div class="mcp-params">
             <div class="mcp-param"><span class="mcp-param-name">title</span><span class="mcp-param-desc">Short descriptive title</span></div>
-            <div class="mcp-param"><span class="mcp-param-name">severity</span><span class="mcp-param-desc">LOW · MEDIUM · HIGH · CRITICAL</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">severity</span><span class="mcp-param-desc">LOW &middot; MEDIUM &middot; HIGH &middot; CRITICAL</span></div>
             <div class="mcp-param"><span class="mcp-param-name">reportedBy</span><span class="mcp-param-desc">Name or ID of the person reporting</span></div>
             <div class="mcp-param"><span class="mcp-param-name">externalReferenceId</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">Idempotency key</span></div>
           </div>
         </div>
       </div>
+
       <div class="mcp-card mutation">
         <div class="mcp-card-head"><span class="mcp-tool-name">update_incident_status</span><span class="mcp-badge mutation">MUTATION</span></div>
         <div class="mcp-card-body">
           <div class="mcp-desc">Advance an incident&#x27;s status. Valid transitions only: OPEN&#x2192;IN_PROGRESS&#x2192;RESOLVED&#x2192;CLOSED. Invalid skips return HTTP 422.</div>
           <div class="mcp-params">
             <div class="mcp-param"><span class="mcp-param-name">id</span><span class="mcp-param-desc">Internal UUID of the incident</span></div>
-            <div class="mcp-param"><span class="mcp-param-name">status</span><span class="mcp-param-desc">IN_PROGRESS · RESOLVED · CLOSED</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">status</span><span class="mcp-param-desc">IN_PROGRESS &middot; RESOLVED &middot; CLOSED</span></div>
             <div class="mcp-param"><span class="mcp-param-name">changedBy</span><span class="mcp-param-desc">Name or ID of the person making the change</span></div>
             <div class="mcp-param"><span class="mcp-param-name">notes</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">Notes about the change</span></div>
           </div>
         </div>
       </div>
+
     </div>
   </div>
 </div>
 
-<!-- layers is LAST so siblings above can hide it via ~ selector -->
+<!-- ── SEMANTIC SEARCH ── -->
+<div id="semantic" class="panel">
+  <h2>Semantic Search &#x2014; Resolution Suggestion Flow</h2>
+
+  <div class="sem-flow">
+
+    <div>
+      <h3>&#x1F4E5; Indexing — triggered on RESOLVED transition</h3>
+      <div class="sem-row">
+        <div class="sem-step trigger"><div class="icon">&#x2699;&#xFE0F;</div><div class="name">IncidentService</div><div class="desc">Transition to RESOLVED<br>publishes IncidentResolvedEvent<br>(Spring @TransactionalEventListener)</div></div>
+        <div class="sem-arrow">&#x2192;</div>
+        <div class="sem-step embed"><div class="icon">&#x1F9E0;</div><div class="name">EmbeddingModel</div><div class="desc">OpenAI text-embedding-3-small<br>embeds: [SEVERITY] title<br>+ resolution notes</div></div>
+        <div class="sem-arrow">&#x2192;</div>
+        <div class="sem-step search"><div class="icon">&#x1F5C4;&#xFE0F;</div><div class="name">VectorStore</div><div class="desc">SimpleVectorStore (dev)<br>PgVectorStore (prod)<br>stores document + vector</div></div>
+        <div class="sem-arrow">&#x2192;</div>
+        <div class="sem-step out"><div class="icon">&#x2705;</div><div class="name">Indexed</div><div class="desc">Incident available for<br>future similarity search<br>(async, post-commit)</div></div>
+      </div>
+    </div>
+
+    <div>
+      <h3>&#x1F50D; Query — triggered by suggest_resolution MCP tool</h3>
+      <div class="sem-row">
+        <div class="sem-step trigger"><div class="icon">&#x1F916;</div><div class="name">AI Agent</div><div class="desc">Calls suggest_resolution<br>with incidentId</div></div>
+        <div class="sem-arrow">&#x2192;</div>
+        <div class="sem-step embed"><div class="icon">&#x1F9E0;</div><div class="name">EmbeddingModel</div><div class="desc">Embeds current incident<br>title + severity as<br>query vector</div></div>
+        <div class="sem-arrow">&#x2192;</div>
+        <div class="sem-step search"><div class="icon">&#x1F50D;</div><div class="name">VectorStore<br>similarity search</div><div class="desc">Top-3 nearest resolved<br>incidents by cosine<br>similarity</div></div>
+        <div class="sem-arrow">&#x2192;</div>
+        <div class="sem-step llm"><div class="icon">&#x2728;</div><div class="name">ChatModel</div><div class="desc">gpt-4o-mini prompted<br>with current incident<br>+ similar resolutions</div></div>
+        <div class="sem-arrow">&#x2192;</div>
+        <div class="sem-step out"><div class="icon">&#x1F4DD;</div><div class="name">Response</div><div class="desc">summary + suggestedResolution<br>+ similarIncidents list</div></div>
+      </div>
+    </div>
+
+    <div class="sem-note">
+      <strong>Document shape stored in VectorStore:</strong>
+      &nbsp;&nbsp;<code style="color:#38bdf8">[CRITICAL] DB connection pool exhausted. Resolution: Increased pool size from 10 to 50; restarted app servers.</code>
+      <br><br>
+      <strong>Metadata:</strong> &nbsp;incidentId &nbsp;&middot;&nbsp; title &nbsp;&middot;&nbsp; severity &nbsp;&middot;&nbsp; resolutionNotes
+      <br><br>
+      <strong>Dev store:</strong> &nbsp;SimpleVectorStore (in-memory, auto-configured) &nbsp;&mdash;&nbsp;
+      <strong>Prod store:</strong> &nbsp;swap for PgVectorStore via <code style="color:#a78bfa">spring-ai-pgvector-store-spring-boot-starter</code> + pgvector extension on PostgreSQL
+    </div>
+
+  </div>
+</div>
+
+<!-- ── LAYER DIAGRAM (last in DOM = default tab) ── -->
 <div id="layers" class="panel">
   <h2>System Layer Diagram</h2>
   <div class="layer-diagram">
+
     <div class="layer">
       <div class="layer-box client"><div class="label">External</div><div class="name">REST Clients / cURL</div><div class="sub">HTTP requests</div></div>
       <div style="width:12px"></div>
-      <div class="layer-box mcp-box" style="flex:0.6"><div class="label">AI Agent</div><div class="name">MCP Client</div><div class="sub">HTTP/SSE · /sse</div></div>
+      <div class="layer-box mcp-box" style="flex:0.6"><div class="label">AI Agent</div><div class="name">MCP Client</div><div class="sub">HTTP/SSE &middot; /sse</div></div>
     </div>
+
     <div class="arrow-down"></div>
     <div class="arrow-label">HTTP / JSON</div>
+
     <div class="layer">
-      <div class="layer-box rest"><div class="label">API Layer</div><div class="name">IncidentController · AuditController</div><div class="sub">RequestLoggingFilter · GlobalExceptionHandler</div></div>
+      <div class="layer-box rest"><div class="label">API Layer</div><div class="name">IncidentController &middot; AuditController</div><div class="sub">RequestLoggingFilter &middot; GlobalExceptionHandler</div></div>
     </div>
+
     <div class="arrow-down"></div>
     <div class="arrow-label">method calls</div>
+
     <div class="side-branch">
-      <div class="main"><div class="layer-box service"><div class="label">Service Layer</div><div class="name">IncidentService · AuditService</div><div class="sub">Business logic · Status transitions · Audit recording</div></div></div>
+      <div class="main">
+        <div class="layer-box service"><div class="label">Service Layer</div><div class="name">IncidentService &middot; AuditService &middot; ResolutionService</div><div class="sub">Business logic &middot; Status transitions &middot; Semantic search</div></div>
+      </div>
       <div class="branch-line"></div>
-      <div class="branch"><div class="layer-box mcp-box" style="width:100%"><div class="label">MCP Tools</div><div class="name">IncidentMcpTools</div><div class="sub">Thin adapter · Spring AI @Tool</div></div></div>
+      <div class="branch">
+        <div class="layer-box mcp-box" style="width:100%"><div class="label">MCP Tools</div><div class="name">IncidentMcpTools</div><div class="sub">Thin adapter &middot; Spring AI @Tool</div></div>
+        <div class="layer-box sem-box" style="width:100%"><div class="label">Async Indexer</div><div class="name">IncidentVectorIndexer</div><div class="sub">@TransactionalEventListener</div></div>
+      </div>
     </div>
+
     <div class="arrow-down"></div>
-    <div class="arrow-label">JPA</div>
+    <div class="arrow-label">JPA &nbsp;/&nbsp; Spring AI</div>
+
     <div class="layer">
-      <div class="layer-box repo"><div class="label">Repository Layer</div><div class="name">IncidentRepository · AuditLogRepository</div><div class="sub">JpaRepository + JpaSpecificationExecutor</div></div>
+      <div class="layer-box repo"><div class="label">Repository Layer</div><div class="name">IncidentRepository &middot; AuditLogRepository</div><div class="sub">JpaRepository + JpaSpecificationExecutor</div></div>
+      <div style="width:12px"></div>
+      <div class="layer-box sem-box" style="flex:0.7"><div class="label">Vector Store</div><div class="name">VectorStore</div><div class="sub">SimpleVectorStore (dev)<br>PgVectorStore (prod)</div></div>
     </div>
+
     <div class="arrow-down"></div>
-    <div class="arrow-label">JDBC / SQL</div>
+    <div class="arrow-label">JDBC / SQL &nbsp;/&nbsp; Embeddings API</div>
+
     <div class="layer">
-      <div class="layer-box db" style="flex:0.5; margin:0 auto"><div class="label">Database</div><div class="name">H2 (dev) · PostgreSQL (prod)</div><div class="sub">incidents · incident_audit_logs</div></div>
+      <div class="layer-box db" style="flex:0.5;margin-left:0"><div class="label">Database</div><div class="name">H2 (dev) &middot; PostgreSQL (prod)</div><div class="sub">incidents &middot; incident_audit_logs</div></div>
+      <div style="width:12px"></div>
+      <div class="layer-box sem-box" style="flex:0.5"><div class="label">LLM APIs</div><div class="name">OpenAI</div><div class="sub">text-embedding-3-small<br>gpt-4o-mini</div></div>
     </div>
+
   </div>
 </div>
 

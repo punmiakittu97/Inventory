@@ -8,6 +8,8 @@ import com.example.incidentintake.incident.api.dto.UpdateStatusRequest;
 import com.example.incidentintake.incident.application.IncidentService;
 import com.example.incidentintake.incident.domain.IncidentStatus;
 import com.example.incidentintake.incident.domain.Severity;
+import com.example.incidentintake.resolution.ResolutionService;
+import com.example.incidentintake.resolution.ResolutionSuggestionResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
@@ -17,7 +19,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Thin MCP adapter — all business logic lives in IncidentService / AuditService.
+ * Thin MCP adapter — all business logic lives in IncidentService / AuditService / ResolutionService.
  * These methods are exposed as MCP tools via Spring AI's tool registration.
  */
 @Component
@@ -26,6 +28,7 @@ public class IncidentMcpTools {
 
     private final IncidentService incidentService;
     private final AuditService auditService;
+    private final ResolutionService resolutionService;
 
     @Tool(name = "create_incident",
           description = "Create a new incident. Returns HTTP 200 with the existing incident if the same externalReferenceId was already submitted (idempotency).")
@@ -40,7 +43,6 @@ public class IncidentMcpTools {
         req.setSeverity(Severity.valueOf(severity.toUpperCase()));
         req.setReportedBy(reportedBy);
         req.setExternalReferenceId(externalReferenceId);
-
         return incidentService.create(req).response();
     }
 
@@ -59,7 +61,7 @@ public class IncidentMcpTools {
             @ToolParam(description = "Filter by reportedBy", required = false) String reportedBy) {
 
         Severity sev = severity != null ? Severity.valueOf(severity.toUpperCase()) : null;
-        IncidentStatus st = status != null ? IncidentStatus.valueOf(status.toUpperCase()) : null;
+        IncidentStatus st  = status   != null ? IncidentStatus.valueOf(status.toUpperCase()) : null;
         return incidentService.list(sev, st, reportedBy);
     }
 
@@ -83,5 +85,12 @@ public class IncidentMcpTools {
     public List<AuditLogResponse> getIncidentHistory(
             @ToolParam(description = "Internal UUID of the incident") String id) {
         return auditService.getHistory(UUID.fromString(id));
+    }
+
+    @Tool(name = "suggest_resolution",
+          description = "Suggest a resolution for an incident by semantically searching past resolved incidents and generating an AI-powered action plan. Works best once several incidents have been resolved and indexed.")
+    public ResolutionSuggestionResponse suggestResolution(
+            @ToolParam(description = "Internal UUID of the incident") String id) {
+        return resolutionService.suggest(UUID.fromString(id));
     }
 }

@@ -10,18 +10,17 @@ import com.example.incidentintake.incident.domain.Incident;
 import com.example.incidentintake.incident.domain.IncidentStatus;
 import com.example.incidentintake.incident.domain.Severity;
 import com.example.incidentintake.incident.infrastructure.IncidentRepository;
+import com.example.incidentintake.resolution.IncidentResolvedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -33,13 +32,8 @@ public class IncidentService {
 
     private final IncidentRepository incidentRepository;
     private final AuditService auditService;
+    private final ApplicationEventPublisher eventPublisher;
 
-    /**
-     * Idempotent creation: if externalReferenceId is supplied and an incident already exists
-     * with that value, the existing incident is returned rather than creating a duplicate.
-     * Callers can distinguish create (HTTP 201) from a hit (HTTP 200) via the ResponseEntity
-     * status set in the controller.
-     */
     @Transactional
     public CreateResult create(CreateIncidentRequest req) {
         if (req.getExternalReferenceId() != null) {
@@ -116,6 +110,13 @@ public class IncidentService {
 
         auditService.record(id, previous, next, req.getChangedBy(), req.getNotes());
 
+        // Publish after audit is persisted; listener fires post-commit to avoid
+        // reading the audit trail before the transaction is visible.
+        if (next == IncidentStatus.RESOLVED) {
+            eventPublisher.publishEvent(new IncidentResolvedEvent(
+                    incident.getId(), incident.getTitle(), incident.getSeverity().name()));
+        }
+
         try {
             MDC.put("incidentId", id.toString());
             log.info("event=INCIDENT_STATUS_CHANGED id={} from={} to={} changedBy={}",
@@ -127,13 +128,12 @@ public class IncidentService {
         return IncidentResponse.from(incident);
     }
 
-    // Allowed transitions: OPEN→IN_PROGRESS, IN_PROGRESS→RESOLVED, RESOLVED→CLOSED
     private boolean isValidTransition(IncidentStatus from, IncidentStatus to) {
         return switch (from) {
-            case OPEN -> to == IncidentStatus.IN_PROGRESS;
+            case OPEN        -> to == IncidentStatus.IN_PROGRESS;
             case IN_PROGRESS -> to == IncidentStatus.RESOLVED;
-            case RESOLVED -> to == IncidentStatus.CLOSED;
-            case CLOSED -> false;
+            case RESOLVED    -> to == IncidentStatus.CLOSED;
+            case CLOSED      -> false;
         };
     }
 
