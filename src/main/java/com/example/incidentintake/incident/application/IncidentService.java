@@ -14,14 +14,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -127,13 +124,15 @@ public class IncidentService {
         return IncidentResponse.from(incident);
     }
 
-    // Allowed transitions: OPEN→IN_PROGRESS, IN_PROGRESS→RESOLVED, RESOLVED→CLOSED
+    // Transitions: OPEN→IN_PROGRESS|ON_HOLD, IN_PROGRESS→RESOLVED|ON_HOLD,
+    //              ON_HOLD→IN_PROGRESS|CLOSED, RESOLVED→CLOSED
     private boolean isValidTransition(IncidentStatus from, IncidentStatus to) {
         return switch (from) {
-            case OPEN -> to == IncidentStatus.IN_PROGRESS;
-            case IN_PROGRESS -> to == IncidentStatus.RESOLVED;
-            case RESOLVED -> to == IncidentStatus.CLOSED;
-            case CLOSED -> false;
+            case OPEN        -> to == IncidentStatus.IN_PROGRESS || to == IncidentStatus.ON_HOLD;
+            case IN_PROGRESS -> to == IncidentStatus.RESOLVED    || to == IncidentStatus.ON_HOLD;
+            case ON_HOLD     -> to == IncidentStatus.IN_PROGRESS || to == IncidentStatus.CLOSED;
+            case RESOLVED    -> to == IncidentStatus.CLOSED;
+            case CLOSED      -> false;
         };
     }
 

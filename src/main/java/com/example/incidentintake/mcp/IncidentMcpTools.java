@@ -55,7 +55,7 @@ public class IncidentMcpTools {
           description = "List incidents with optional filters. All parameters are optional and combinable.")
     public List<IncidentResponse> listIncidents(
             @ToolParam(description = "Filter by severity: LOW, MEDIUM, HIGH, CRITICAL", required = false) String severity,
-            @ToolParam(description = "Filter by status: OPEN, IN_PROGRESS, RESOLVED, CLOSED", required = false) String status,
+            @ToolParam(description = "Filter by status: OPEN, IN_PROGRESS, ON_HOLD, RESOLVED, CLOSED", required = false) String status,
             @ToolParam(description = "Filter by reportedBy", required = false) String reportedBy) {
 
         Severity sev = severity != null ? Severity.valueOf(severity.toUpperCase()) : null;
@@ -64,10 +64,10 @@ public class IncidentMcpTools {
     }
 
     @Tool(name = "update_incident_status",
-          description = "Update an incident's status. Allowed transitions: OPEN→IN_PROGRESS, IN_PROGRESS→RESOLVED, RESOLVED→CLOSED.")
+          description = "Update an incident's status. Allowed transitions: OPEN→IN_PROGRESS|ON_HOLD, IN_PROGRESS→RESOLVED|ON_HOLD, ON_HOLD→IN_PROGRESS|CLOSED, RESOLVED→CLOSED. Invalid transitions return HTTP 422.")
     public IncidentResponse updateIncidentStatus(
             @ToolParam(description = "Internal UUID of the incident") String id,
-            @ToolParam(description = "Target status: IN_PROGRESS, RESOLVED, or CLOSED") String status,
+            @ToolParam(description = "Target status: IN_PROGRESS, ON_HOLD, RESOLVED, or CLOSED") String status,
             @ToolParam(description = "Name or ID of the person making the change") String changedBy,
             @ToolParam(description = "Optional notes about the change", required = false) String notes) {
 

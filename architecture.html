@@ -241,36 +241,69 @@
 <div id="statemachine" class="panel">
   <h2>Incident Status State Machine</h2>
   <div class="sm-wrap">
-    <svg class="sm-svg" viewBox="0 0 800 260" xmlns="http://www.w3.org/2000/svg">
+    <svg class="sm-svg" viewBox="0 0 800 360" xmlns="http://www.w3.org/2000/svg">
       <defs>
         <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#4a5568"/></marker>
         <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#fc8181"/></marker>
+        <marker id="arr-hold" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#94a3b8"/></marker>
         <filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
       </defs>
+
+      <!-- Main states -->
       <rect x="30" y="90" width="130" height="60" rx="10" fill="#1a1d27" stroke="#6c8cff" stroke-width="1.5"/>
       <text x="95" y="116" text-anchor="middle" fill="#6c8cff" font-size="13" font-weight="700">OPEN</text>
       <text x="95" y="133" text-anchor="middle" fill="#8892aa" font-size="10">Initial state</text>
       <circle cx="42" cy="100" r="6" fill="#6c8cff" filter="url(#glow)"/>
+
       <rect x="230" y="90" width="140" height="60" rx="10" fill="#1a1d27" stroke="#ffd166" stroke-width="1.5"/>
       <text x="300" y="116" text-anchor="middle" fill="#ffd166" font-size="13" font-weight="700">IN_PROGRESS</text>
       <text x="300" y="133" text-anchor="middle" fill="#8892aa" font-size="10">Being worked on</text>
+
       <rect x="440" y="90" width="130" height="60" rx="10" fill="#1a1d27" stroke="#43e097" stroke-width="1.5"/>
       <text x="505" y="116" text-anchor="middle" fill="#43e097" font-size="13" font-weight="700">RESOLVED</text>
       <text x="505" y="133" text-anchor="middle" fill="#8892aa" font-size="10">resolvedAt set</text>
+
       <rect x="635" y="90" width="120" height="60" rx="10" fill="#1a1d27" stroke="#ef8c34" stroke-width="1.5"/>
       <text x="695" y="116" text-anchor="middle" fill="#ef8c34" font-size="13" font-weight="700">CLOSED</text>
       <text x="695" y="133" text-anchor="middle" fill="#8892aa" font-size="10">Terminal state</text>
       <rect x="720" y="96" width="28" height="28" rx="5" fill="none" stroke="#ef8c34" stroke-width="1"/>
+
+      <!-- ON_HOLD state (below IN_PROGRESS) -->
+      <rect x="195" y="215" width="210" height="58" rx="10" fill="#1a1d27" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="300" y="241" text-anchor="middle" fill="#94a3b8" font-size="13" font-weight="700">ON_HOLD</text>
+      <text x="300" y="258" text-anchor="middle" fill="#8892aa" font-size="10">Work paused</text>
+
+      <!-- Main forward transitions -->
       <line x1="161" y1="112" x2="228" y2="112" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr)"/>
       <text x="194" y="107" text-anchor="middle" fill="#8892aa" font-size="9">PATCH status</text>
       <line x1="371" y1="112" x2="438" y2="112" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr)"/>
       <text x="404" y="107" text-anchor="middle" fill="#8892aa" font-size="9">PATCH status</text>
       <line x1="571" y1="112" x2="633" y2="112" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr)"/>
       <text x="602" y="107" text-anchor="middle" fill="#8892aa" font-size="9">PATCH status</text>
-      <path d="M95,150 Q95,210 505,210 Q635,210 695,152" fill="none" stroke="#fc8181" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arr-red)"/>
-      <text x="395" y="225" text-anchor="middle" fill="#fc8181" font-size="10">&#x26D4; Invalid (skipped transitions &#x2192; HTTP 422)</text>
-      <rect x="230" y="180" width="310" height="26" rx="6" fill="#22263a" stroke="#2e3250"/>
-      <text x="385" y="197" text-anchor="middle" fill="#8892aa" font-size="10">Every valid transition &#x2192; IncidentAuditLog row persisted</text>
+
+      <!-- OPEN → ON_HOLD -->
+      <path d="M 80,150 Q 80,195 195,237" fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-hold)"/>
+      <text x="110" y="200" text-anchor="middle" fill="#94a3b8" font-size="9">hold</text>
+
+      <!-- IN_PROGRESS → ON_HOLD (left side, going down) -->
+      <line x1="275" y1="150" x2="258" y2="215" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-hold)"/>
+      <text x="242" y="190" text-anchor="end" fill="#94a3b8" font-size="9">hold</text>
+
+      <!-- ON_HOLD → IN_PROGRESS (right side, going up) -->
+      <line x1="342" y1="215" x2="325" y2="150" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arr-hold)"/>
+      <text x="358" y="190" text-anchor="start" fill="#94a3b8" font-size="9">resume</text>
+
+      <!-- ON_HOLD → CLOSED -->
+      <path d="M 405,244 Q 590,265 695,152" fill="none" stroke="#94a3b8" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arr-hold)"/>
+      <text x="568" y="278" text-anchor="middle" fill="#94a3b8" font-size="9">close</text>
+
+      <!-- Audit note (fits in gap between rows) -->
+      <rect x="180" y="163" width="310" height="22" rx="6" fill="#22263a" stroke="#2e3250"/>
+      <text x="335" y="178" text-anchor="middle" fill="#8892aa" font-size="10">Every valid transition → IncidentAuditLog row persisted</text>
+
+      <!-- Invalid transitions arc (routes below ON_HOLD) -->
+      <path d="M 95,150 Q 95,310 505,310 Q 640,310 695,152" fill="none" stroke="#fc8181" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arr-red)"/>
+      <text x="395" y="328" text-anchor="middle" fill="#fc8181" font-size="10">&#x26D4; Invalid (skipped transitions &#x2192; HTTP 422)</text>
     </svg>
   </div>
 </div>
@@ -321,8 +354,8 @@
         <div class="mcp-card-body">
           <div class="mcp-desc">List incidents with optional filters. All parameters are combinable.</div>
           <div class="mcp-params">
-            <div class="mcp-param"><span class="mcp-param-name">severity</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">LOW · MEDIUM · HIGH · CRITICAL</span></div>
-            <div class="mcp-param"><span class="mcp-param-name">status</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">OPEN · IN_PROGRESS · RESOLVED · CLOSED</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">severity</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">LOW &middot; MEDIUM &middot; HIGH &middot; CRITICAL</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">status</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">OPEN &middot; IN_PROGRESS &middot; ON_HOLD &middot; RESOLVED &middot; CLOSED</span></div>
             <div class="mcp-param"><span class="mcp-param-name">reportedBy</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">Filter by reporter name or ID</span></div>
           </div>
         </div>
@@ -347,7 +380,7 @@
           <div class="mcp-desc">Create a new incident. Idempotent &#x2014; returns the existing incident if the same <code style="font-size:0.75rem;color:#b06cff">externalReferenceId</code> was already submitted.</div>
           <div class="mcp-params">
             <div class="mcp-param"><span class="mcp-param-name">title</span><span class="mcp-param-desc">Short descriptive title</span></div>
-            <div class="mcp-param"><span class="mcp-param-name">severity</span><span class="mcp-param-desc">LOW · MEDIUM · HIGH · CRITICAL</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">severity</span><span class="mcp-param-desc">LOW &middot; MEDIUM &middot; HIGH &middot; CRITICAL</span></div>
             <div class="mcp-param"><span class="mcp-param-name">reportedBy</span><span class="mcp-param-desc">Name or ID of the person reporting</span></div>
             <div class="mcp-param"><span class="mcp-param-name">externalReferenceId</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">Idempotency key</span></div>
           </div>
@@ -356,10 +389,10 @@
       <div class="mcp-card mutation">
         <div class="mcp-card-head"><span class="mcp-tool-name">update_incident_status</span><span class="mcp-badge mutation">MUTATION</span></div>
         <div class="mcp-card-body">
-          <div class="mcp-desc">Advance an incident&#x27;s status. Valid transitions only: OPEN&#x2192;IN_PROGRESS&#x2192;RESOLVED&#x2192;CLOSED. Invalid skips return HTTP 422.</div>
+          <div class="mcp-desc">Advance an incident&#x27;s status. Valid transitions: OPEN&#x2192;IN_PROGRESS|ON_HOLD, IN_PROGRESS&#x2192;RESOLVED|ON_HOLD, ON_HOLD&#x2192;IN_PROGRESS|CLOSED, RESOLVED&#x2192;CLOSED. Invalid transitions return HTTP 422.</div>
           <div class="mcp-params">
             <div class="mcp-param"><span class="mcp-param-name">id</span><span class="mcp-param-desc">Internal UUID of the incident</span></div>
-            <div class="mcp-param"><span class="mcp-param-name">status</span><span class="mcp-param-desc">IN_PROGRESS · RESOLVED · CLOSED</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">status</span><span class="mcp-param-desc">IN_PROGRESS &middot; ON_HOLD &middot; RESOLVED &middot; CLOSED</span></div>
             <div class="mcp-param"><span class="mcp-param-name">changedBy</span><span class="mcp-param-desc">Name or ID of the person making the change</span></div>
             <div class="mcp-param"><span class="mcp-param-name">notes</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">Notes about the change</span></div>
           </div>
@@ -376,29 +409,29 @@
     <div class="layer">
       <div class="layer-box client"><div class="label">External</div><div class="name">REST Clients / cURL</div><div class="sub">HTTP requests</div></div>
       <div style="width:12px"></div>
-      <div class="layer-box mcp-box" style="flex:0.6"><div class="label">AI Agent</div><div class="name">MCP Client</div><div class="sub">HTTP/SSE · /sse</div></div>
+      <div class="layer-box mcp-box" style="flex:0.6"><div class="label">AI Agent</div><div class="name">MCP Client</div><div class="sub">HTTP/SSE &middot; /sse</div></div>
     </div>
     <div class="arrow-down"></div>
     <div class="arrow-label">HTTP / JSON</div>
     <div class="layer">
-      <div class="layer-box rest"><div class="label">API Layer</div><div class="name">IncidentController · AuditController</div><div class="sub">RequestLoggingFilter · GlobalExceptionHandler</div></div>
+      <div class="layer-box rest"><div class="label">API Layer</div><div class="name">IncidentController &middot; AuditController</div><div class="sub">RequestLoggingFilter &middot; GlobalExceptionHandler</div></div>
     </div>
     <div class="arrow-down"></div>
     <div class="arrow-label">method calls</div>
     <div class="side-branch">
-      <div class="main"><div class="layer-box service"><div class="label">Service Layer</div><div class="name">IncidentService · AuditService</div><div class="sub">Business logic · Status transitions · Audit recording</div></div></div>
+      <div class="main"><div class="layer-box service"><div class="label">Service Layer</div><div class="name">IncidentService &middot; AuditService</div><div class="sub">Business logic &middot; Status transitions &middot; Audit recording</div></div></div>
       <div class="branch-line"></div>
-      <div class="branch"><div class="layer-box mcp-box" style="width:100%"><div class="label">MCP Tools</div><div class="name">IncidentMcpTools</div><div class="sub">Thin adapter · Spring AI @Tool</div></div></div>
+      <div class="branch"><div class="layer-box mcp-box" style="width:100%"><div class="label">MCP Tools</div><div class="name">IncidentMcpTools</div><div class="sub">Thin adapter &middot; Spring AI @Tool</div></div></div>
     </div>
     <div class="arrow-down"></div>
     <div class="arrow-label">JPA</div>
     <div class="layer">
-      <div class="layer-box repo"><div class="label">Repository Layer</div><div class="name">IncidentRepository · AuditLogRepository</div><div class="sub">JpaRepository + JpaSpecificationExecutor</div></div>
+      <div class="layer-box repo"><div class="label">Repository Layer</div><div class="name">IncidentRepository &middot; AuditLogRepository</div><div class="sub">JpaRepository + JpaSpecificationExecutor</div></div>
     </div>
     <div class="arrow-down"></div>
     <div class="arrow-label">JDBC / SQL</div>
     <div class="layer">
-      <div class="layer-box db" style="flex:0.5; margin:0 auto"><div class="label">Database</div><div class="name">H2 (dev) · PostgreSQL (prod)</div><div class="sub">incidents · incident_audit_logs</div></div>
+      <div class="layer-box db" style="flex:0.5; margin:0 auto"><div class="label">Database</div><div class="name">H2 (dev) &middot; PostgreSQL (prod)</div><div class="sub">incidents &middot; incident_audit_logs</div></div>
     </div>
   </div>
 </div>
