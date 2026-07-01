@@ -57,6 +57,85 @@
     border-color: var(--accent);
     color: #fff;
   }
+
+  /* ── MCP TOOLS ── */
+  .mcp-section { margin-bottom: 36px; }
+  .mcp-kind-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 4px 14px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+  }
+  .mcp-kind-label.read  { background: #43e09722; color: #43e097; border: 1px solid #43e09755; }
+  .mcp-kind-label.mutation { background: #ff6b9d22; color: #ff6b9d; border: 1px solid #ff6b9d55; }
+  .mcp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+  .mcp-card {
+    background: var(--surface);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .mcp-card.read   { border-left: 3px solid #43e097; }
+  .mcp-card.mutation { border-left: 3px solid #ff6b9d; }
+  .mcp-card-head {
+    padding: 12px 16px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .mcp-tool-name {
+    font-family: 'Courier New', monospace;
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  .mcp-card.read   .mcp-tool-name { color: #43e097; }
+  .mcp-card.mutation .mcp-tool-name { color: #ff6b9d; }
+  .mcp-badge {
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+  .mcp-badge.read     { background: #43e09733; color: #43e097; }
+  .mcp-badge.mutation { background: #ff6b9d33; color: #ff6b9d; }
+  .mcp-card-body { padding: 10px 16px 14px; }
+  .mcp-desc { font-size: 0.78rem; color: var(--text-dim); margin-bottom: 10px; line-height: 1.5; }
+  .mcp-params { display: flex; flex-direction: column; gap: 5px; }
+  .mcp-param {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 0.75rem;
+  }
+  .mcp-param-name {
+    font-family: 'Courier New', monospace;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+  .mcp-param-desc { color: var(--text-dim); }
+  .mcp-param-opt {
+    font-size: 0.65rem;
+    padding: 1px 5px;
+    border-radius: 6px;
+    background: var(--surface2);
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
   .panel { display: none; padding: 32px 40px; }
   .panel.active { display: block; }
 
@@ -224,6 +303,7 @@
   <button onclick="show('components', this)">Component Map</button>
   <button onclick="show('statemachine', this)">State Machine</button>
   <button onclick="show('auditflow', this)">Audit Flow</button>
+  <button onclick="show('mcptools', this)">MCP Tools</button>
 </nav>
 
 <!-- ────────── LAYER DIAGRAM ────────── -->
@@ -403,7 +483,6 @@
         </filter>
       </defs>
 
-      <!-- States -->
       <!-- OPEN -->
       <rect x="30" y="90" width="130" height="60" rx="10" fill="#1a1d27" stroke="#6c8cff" stroke-width="1.5"/>
       <text x="95" y="116" text-anchor="middle" fill="#6c8cff" font-size="13" font-weight="700">OPEN</text>
@@ -426,7 +505,6 @@
       <text x="695" y="133" text-anchor="middle" fill="#8892aa" font-size="10">Terminal state</text>
       <rect x="720" y="96" width="28" height="28" rx="5" fill="none" stroke="#ef8c34" stroke-width="1"/>
 
-      <!-- Valid transitions (forward arrows, above) -->
       <line x1="161" y1="112" x2="228" y2="112" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr)"/>
       <text x="194" y="107" text-anchor="middle" fill="#8892aa" font-size="9">PATCH status</text>
 
@@ -436,13 +514,11 @@
       <line x1="571" y1="112" x2="633" y2="112" stroke="#4a5568" stroke-width="1.5" marker-end="url(#arr)"/>
       <text x="602" y="107" text-anchor="middle" fill="#8892aa" font-size="9">PATCH status</text>
 
-      <!-- Invalid transition example (skip) -->
       <path d="M95,150 Q95,210 505,210 Q635,210 695,152" fill="none" stroke="#fc8181" stroke-width="1" stroke-dasharray="5,4" marker-end="url(#arr-red)"/>
-      <text x="395" y="225" text-anchor="middle" fill="#fc8181" font-size="10">⛔ Invalid (skipped transitions → HTTP 422)</text>
+      <text x="395" y="225" text-anchor="middle" fill="#fc8181" font-size="10">&#x26D4; Invalid (skipped transitions &#x2192; HTTP 422)</text>
 
-      <!-- Audit badge -->
       <rect x="230" y="180" width="310" height="26" rx="6" fill="#22263a" stroke="#2e3250"/>
-      <text x="385" y="197" text-anchor="middle" fill="#8892aa" font-size="10">Every valid transition → IncidentAuditLog row persisted</text>
+      <text x="385" y="197" text-anchor="middle" fill="#8892aa" font-size="10">Every valid transition &#x2192; IncidentAuditLog row persisted</text>
     </svg>
   </div>
 </div>
@@ -453,43 +529,43 @@
   <div class="audit-flow">
 
     <div class="af-step" style="border-color:#6c8cff44">
-      <div class="icon">🌐</div>
+      <div class="icon">&#x1F310;</div>
       <div class="name">Client</div>
       <div class="desc">PATCH /incidents/{id}/status<br>{ status, changedBy, notes }</div>
       <div class="badge" style="background:#6c8cff22; color:#6c8cff">HTTP</div>
     </div>
 
-    <div class="af-arrow">→</div>
+    <div class="af-arrow">&#x2192;</div>
 
     <div class="af-step" style="border-color:#6c8cff44">
-      <div class="icon">🎛️</div>
+      <div class="icon">&#x1F39B;&#xFE0F;</div>
       <div class="name">IncidentController</div>
       <div class="desc">Validates request<br>delegates to service</div>
       <div class="badge" style="background:#6c8cff22; color:#6c8cff">@Valid</div>
     </div>
 
-    <div class="af-arrow">→</div>
+    <div class="af-arrow">&#x2192;</div>
 
     <div class="af-step" style="border-color:#43e09744">
-      <div class="icon">⚙️</div>
+      <div class="icon">&#x2699;&#xFE0F;</div>
       <div class="name">IncidentService</div>
       <div class="desc">Validates transition<br>Updates status<br>Sets resolvedAt if RESOLVED</div>
       <div class="badge" style="background:#43e09722; color:#43e097">Business Logic</div>
     </div>
 
-    <div class="af-arrow">→</div>
+    <div class="af-arrow">&#x2192;</div>
 
     <div class="af-step" style="border-color:#ff6b9d44">
-      <div class="icon">📋</div>
+      <div class="icon">&#x1F4CB;</div>
       <div class="name">AuditService</div>
       <div class="desc">Creates AuditLog row<br>{ prevStatus, newStatus,<br>changedBy, changedAt, notes }</div>
       <div class="badge" style="background:#ff6b9d22; color:#ff6b9d">Audit</div>
     </div>
 
-    <div class="af-arrow">→</div>
+    <div class="af-arrow">&#x2192;</div>
 
     <div class="af-step" style="border-color:#ef8c3444">
-      <div class="icon">🗄️</div>
+      <div class="icon">&#x1F5C4;&#xFE0F;</div>
       <div class="name">Database</div>
       <div class="desc">incident_audit_logs table<br>ordered by changedAt ASC</div>
       <div class="badge" style="background:#ef8c3422; color:#ef8c34">Persisted</div>
@@ -501,28 +577,166 @@
     <h2>Querying Audit History</h2>
     <div class="audit-flow">
       <div class="af-step" style="border-color:#6c8cff44; flex:0.8">
-        <div class="icon">🤖</div>
+        <div class="icon">&#x1F916;</div>
         <div class="name">Client or AI Agent</div>
         <div class="desc">GET /incidents/{id}/history<br>or MCP: get_incident_history</div>
       </div>
-      <div class="af-arrow">→</div>
+      <div class="af-arrow">&#x2192;</div>
       <div class="af-step" style="border-color:#ff6b9d44">
-        <div class="icon">📋</div>
+        <div class="icon">&#x1F4CB;</div>
         <div class="name">AuditController / MCP</div>
         <div class="desc">Thin delegates to AuditService<br>.getHistory(incidentId)</div>
       </div>
-      <div class="af-arrow">→</div>
+      <div class="af-arrow">&#x2192;</div>
       <div class="af-step" style="border-color:#ef8c3444">
-        <div class="icon">🗄️</div>
+        <div class="icon">&#x1F5C4;&#xFE0F;</div>
         <div class="name">AuditLogRepository</div>
         <div class="desc">findByIncidentIdOrderByChangedAtAsc<br>Returns chronological log</div>
       </div>
-      <div class="af-arrow">→</div>
+      <div class="af-arrow">&#x2192;</div>
       <div class="af-step" style="border-color:#43e09744; flex:0.8">
-        <div class="icon">✅</div>
+        <div class="icon">&#x2705;</div>
         <div class="name">Response</div>
-        <div class="desc">[ { previousStatus, newStatus,<br>changedBy, changedAt, notes }, … ]</div>
+        <div class="desc">[ { previousStatus, newStatus,<br>changedBy, changedAt, notes }, &#x2026; ]</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ────────── MCP TOOLS ────────── -->
+<div id="mcptools" class="panel">
+  <h2>MCP Tools &#x2014; AI Agent Consumption</h2>
+
+  <!-- READ -->
+  <div class="mcp-section">
+    <div class="mcp-kind-label read">&#x1F50D; Read &#x2014; no state change</div>
+    <div class="mcp-grid">
+
+      <div class="mcp-card read">
+        <div class="mcp-card-head">
+          <span class="mcp-tool-name">get_incident</span>
+          <span class="mcp-badge read">READ</span>
+        </div>
+        <div class="mcp-card-body">
+          <div class="mcp-desc">Retrieve a single incident by its internal UUID.</div>
+          <div class="mcp-params">
+            <div class="mcp-param">
+              <span class="mcp-param-name">id</span>
+              <span class="mcp-param-desc">Internal UUID of the incident</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mcp-card read">
+        <div class="mcp-card-head">
+          <span class="mcp-tool-name">list_incidents</span>
+          <span class="mcp-badge read">READ</span>
+        </div>
+        <div class="mcp-card-body">
+          <div class="mcp-desc">List incidents with optional filters. All parameters are combinable.</div>
+          <div class="mcp-params">
+            <div class="mcp-param">
+              <span class="mcp-param-name">severity</span>
+              <span class="mcp-param-opt">optional</span>
+              <span class="mcp-param-desc">LOW &#xB7; MEDIUM &#xB7; HIGH &#xB7; CRITICAL</span>
+            </div>
+            <div class="mcp-param">
+              <span class="mcp-param-name">status</span>
+              <span class="mcp-param-opt">optional</span>
+              <span class="mcp-param-desc">OPEN &#xB7; IN_PROGRESS &#xB7; RESOLVED &#xB7; CLOSED</span>
+            </div>
+            <div class="mcp-param">
+              <span class="mcp-param-name">reportedBy</span>
+              <span class="mcp-param-opt">optional</span>
+              <span class="mcp-param-desc">Filter by reporter name or ID</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mcp-card read">
+        <div class="mcp-card-head">
+          <span class="mcp-tool-name">get_incident_history</span>
+          <span class="mcp-badge read">READ</span>
+        </div>
+        <div class="mcp-card-body">
+          <div class="mcp-desc">Retrieve the full audit trail for an incident, ordered by time ascending.</div>
+          <div class="mcp-params">
+            <div class="mcp-param">
+              <span class="mcp-param-name">id</span>
+              <span class="mcp-param-desc">Internal UUID of the incident</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- MUTATION -->
+  <div class="mcp-section">
+    <div class="mcp-kind-label mutation">&#x270F;&#xFE0F; Mutation &#x2014; modifies state</div>
+    <div class="mcp-grid">
+
+      <div class="mcp-card mutation">
+        <div class="mcp-card-head">
+          <span class="mcp-tool-name">create_incident</span>
+          <span class="mcp-badge mutation">MUTATION</span>
+        </div>
+        <div class="mcp-card-body">
+          <div class="mcp-desc">Create a new incident. Idempotent &#x2014; returns the existing incident if the same <code style="font-size:0.75rem;color:#b06cff">externalReferenceId</code> was already submitted.</div>
+          <div class="mcp-params">
+            <div class="mcp-param">
+              <span class="mcp-param-name">title</span>
+              <span class="mcp-param-desc">Short descriptive title</span>
+            </div>
+            <div class="mcp-param">
+              <span class="mcp-param-name">severity</span>
+              <span class="mcp-param-desc">LOW &#xB7; MEDIUM &#xB7; HIGH &#xB7; CRITICAL</span>
+            </div>
+            <div class="mcp-param">
+              <span class="mcp-param-name">reportedBy</span>
+              <span class="mcp-param-desc">Name or ID of the person reporting</span>
+            </div>
+            <div class="mcp-param">
+              <span class="mcp-param-name">externalReferenceId</span>
+              <span class="mcp-param-opt">optional</span>
+              <span class="mcp-param-desc">Idempotency key</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mcp-card mutation">
+        <div class="mcp-card-head">
+          <span class="mcp-tool-name">update_incident_status</span>
+          <span class="mcp-badge mutation">MUTATION</span>
+        </div>
+        <div class="mcp-card-body">
+          <div class="mcp-desc">Advance an incident&#x27;s status. Valid transitions only: OPEN&#x2192;IN_PROGRESS&#x2192;RESOLVED&#x2192;CLOSED. Invalid skips return HTTP 422.</div>
+          <div class="mcp-params">
+            <div class="mcp-param">
+              <span class="mcp-param-name">id</span>
+              <span class="mcp-param-desc">Internal UUID of the incident</span>
+            </div>
+            <div class="mcp-param">
+              <span class="mcp-param-name">status</span>
+              <span class="mcp-param-desc">IN_PROGRESS &#xB7; RESOLVED &#xB7; CLOSED</span>
+            </div>
+            <div class="mcp-param">
+              <span class="mcp-param-name">changedBy</span>
+              <span class="mcp-param-desc">Name or ID of the person making the change</span>
+            </div>
+            <div class="mcp-param">
+              <span class="mcp-param-name">notes</span>
+              <span class="mcp-param-opt">optional</span>
+              <span class="mcp-param-desc">Notes about the change</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
