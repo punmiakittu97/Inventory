@@ -6,7 +6,6 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
-import java.util.UUID;
 
 @Entity
 @Table(name = "incidents")
@@ -17,10 +16,10 @@ import java.util.UUID;
 @Builder
 public class Incident {
 
+    // Assigned by IncidentIdGenerator (e.g. INC1001) before save — not DB-generated.
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(updatable = false, nullable = false)
-    private UUID id;
+    private String id;
 
     @Column(nullable = false)
     private String title;

@@ -1,5 +1,7 @@
 package com.example.incidentintake.common.exception;
 
+import com.example.incidentintake.chat.ChatNotConfiguredException;
+import com.example.incidentintake.chat.ChatUpstreamException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -47,6 +49,22 @@ public class GlobalExceptionHandler {
         log.warn("event=INVALID_STATUS_TRANSITION path={} message=\"{}\"", request.getRequestURI(), ex.getMessage());
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(errorBody(
                 HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage(), request.getRequestURI(), List.of()));
+    }
+
+    @ExceptionHandler(ChatNotConfiguredException.class)
+    public ResponseEntity<Map<String, Object>> handleChatNotConfigured(
+            ChatNotConfiguredException ex, HttpServletRequest request) {
+        log.error("event=CHAT_NOT_CONFIGURED path={} message=\"{}\"", request.getRequestURI(), ex.getMessage());
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(errorBody(
+                HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage(), request.getRequestURI(), List.of()));
+    }
+
+    @ExceptionHandler(ChatUpstreamException.class)
+    public ResponseEntity<Map<String, Object>> handleChatUpstream(
+            ChatUpstreamException ex, HttpServletRequest request) {
+        log.error("event=CHAT_UPSTREAM_FAILURE path={} message=\"{}\"", request.getRequestURI(), ex.getMessage(), ex);
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(errorBody(
+                HttpStatus.BAD_GATEWAY, ex.getMessage(), request.getRequestURI(), List.of()));
     }
 
     @ExceptionHandler(Exception.class)

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Incident Intake API",
-    "description": "REST API for the Incident Intake microservice.\n\nBase URL variable: `base_url` (default: http://localhost:8080)\n\nWorkflow tip: run **Create Incident** first — the test script auto-saves the returned `id` into the `incident_id` collection variable so all subsequent requests are pre-filled.\n\nStatus transitions (feature/MVP):\n  OPEN → IN_PROGRESS | ON_HOLD\n  IN_PROGRESS → RESOLVED | ON_HOLD\n  ON_HOLD → IN_PROGRESS | CLOSED\n  RESOLVED → CLOSED",
+    "description": "REST API for the Incident Intake microservice.\n\nBase URL variable: `base_url` (default: http://localhost:8080)\n\nWorkflow tip: run **Create Incident** first — the test script auto-saves the returned `id` into the `incident_id` collection variable so all subsequent requests are pre-filled.\n\nStatus transitions (feature/MVP):\n  OPEN → IN_PROGRESS | ON_HOLD\n  IN_PROGRESS → RESOLVED | ON_HOLD\n  ON_HOLD → IN_PROGRESS | CLOSED\n  RESOLVED → CLOSED\n\nThe **Chat (Claude)** folder exercises the same flows through natural language against POST /chat, backed by an Anthropic Claude model wired to all five MCP tools (create_incident, get_incident, list_incidents, update_incident_status, get_incident_history). Run its requests in order — each one reuses `conversation_id`, auto-saved by the first chat request's test script, so the model retains context across turns.\n\nThe **MCP Context** folder hits GET /mcp/tools, which lists every registered MCP tool with its name, description, and JSON input schema.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -16,6 +16,12 @@
       "value": "",
       "type": "string",
       "description": "Auto-populated by the Create Incident test script"
+    },
+    {
+      "key": "conversation_id",
+      "value": "",
+      "type": "string",
+      "description": "Auto-populated by the first Chat request's test script; reused by subsequent chat requests for multi-turn memory"
     }
   ],
   "item": [
@@ -377,6 +383,326 @@
       ]
     },
     {
+      "name": "Chat (Claude)",
+      "description": "Natural-language flows against POST /chat. The assistant is a Claude model wired to all five MCP tools (create_incident, get_incident, list_incidents, update_incident_status, get_incident_history), so each request below drives the same backend logic as the Incidents/Audit REST folders — just phrased as a conversation.\n\nRun requests top to bottom. The first request omits `conversationId` so the server generates one and the test script saves it into `conversation_id`; every later request sends that value back so the model keeps multi-turn context (e.g. remembering which incident was just discussed).\n\nRequires `ANTHROPIC_API_KEY` to be set on the running server — these calls hit the real Claude API and will 500 without it.",
+      "item": [
+        {
+          "name": "Chat: Create Incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response has reply and conversationId', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.reply).to.be.a('string').and.not.empty;",
+                  "    pm.expect(body.conversationId).to.be.a('string').and.not.empty;",
+                  "    pm.collectionVariables.set('conversation_id', body.conversationId);",
+                  "    console.log('conversation_id set to', body.conversationId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Create a new CRITICAL incident titled 'Redis cluster failover loop', reported by chat-user@example.com.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "First turn — no conversationId sent, so the server mints a new one. Expect the model to invoke create_incident and confirm creation in its reply."
+          }
+        },
+        {
+          "name": "Chat: List Incidents by Severity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('conversationId echoed back unchanged', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.conversationId).to.eql(pm.collectionVariables.get('conversation_id'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Show me every CRITICAL incident currently open.\",\n  \"conversationId\": \"{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "Exercises list_incidents with a severity filter. Continues the same conversation started above."
+          }
+        },
+        {
+          "name": "Chat: Get Incident by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"What's the current status of incident {{incident_id}}?\",\n  \"conversationId\": \"{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "Exercises get_incident. `incident_id` comes from the Incidents/Create Incident request — run that first if this incident doesn't exist yet."
+          }
+        },
+        {
+          "name": "Chat: Update Status → IN_PROGRESS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Move incident {{incident_id}} to IN_PROGRESS. I'm the one working it, changedBy is chat-user@example.com. Note: investigating root cause.\",\n  \"conversationId\": \"{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "Exercises update_incident_status: OPEN → IN_PROGRESS."
+          }
+        },
+        {
+          "name": "Chat: Update Status → ON_HOLD",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Put incident {{incident_id}} ON_HOLD — we're waiting on the networking team, changedBy is chat-user@example.com.\",\n  \"conversationId\": \"{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "Exercises update_incident_status: IN_PROGRESS → ON_HOLD (feature/MVP addition)."
+          }
+        },
+        {
+          "name": "Chat: Resume from ON_HOLD",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"The networking team is done. Resume work on incident {{incident_id}} — move it back to IN_PROGRESS.\",\n  \"conversationId\": \"{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "Exercises update_incident_status: ON_HOLD → IN_PROGRESS. Relies on chat memory to know which incident 'it' refers to."
+          }
+        },
+        {
+          "name": "Chat: Resolve Incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Mark incident {{incident_id}} as RESOLVED. Note: failover fixed and verified in staging.\",\n  \"conversationId\": \"{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "Exercises update_incident_status: IN_PROGRESS → RESOLVED."
+          }
+        },
+        {
+          "name": "Chat: Close Incident",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Close out incident {{incident_id}}, it's been stable for 24 hours.\",\n  \"conversationId\": \"{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "Exercises update_incident_status: RESOLVED → CLOSED. Terminal state."
+          }
+        },
+        {
+          "name": "Chat: Get Incident History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Give me the full timeline of status changes for incident {{incident_id}}, in order.\",\n  \"conversationId\": \"{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "Exercises get_incident_history — should reflect every transition made in the requests above (OPEN→IN_PROGRESS→ON_HOLD→IN_PROGRESS→RESOLVED→CLOSED)."
+          }
+        },
+        {
+          "name": "Chat: Multi-turn Follow-up",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Reply references prior context', () => {",
+                  "    pm.expect(pm.response.json().reply).to.be.a('string').and.not.empty;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"message\": \"Without me repeating the ID — how many times did that incident's status change, and who made the most recent change?\",\n  \"conversationId\": \"{{conversation_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/chat",
+              "host": ["{{base_url}}"],
+              "path": ["chat"]
+            },
+            "description": "No incident ID or tool hint given — this only works if MessageChatMemoryAdvisor is correctly threading conversation_id through so the model recalls the incident and history from the previous turns."
+          }
+        }
+      ]
+    },
+    {
       "name": "Audit",
       "item": [
         {
@@ -406,6 +732,48 @@
               "path": ["incidents", "{{incident_id}}", "history"]
             },
             "description": "Returns the full chronological audit trail for an incident. Each entry records who changed what status and when, plus optional notes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "MCP Context",
+      "item": [
+        {
+          "name": "List MCP Tools",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns all 5 registered tools', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.be.an('array').with.lengthOf(5);",
+                  "    const names = body.map(t => t.name);",
+                  "    ['create_incident', 'get_incident', 'list_incidents', 'update_incident_status', 'get_incident_history']",
+                  "        .forEach(n => pm.expect(names).to.include(n));",
+                  "});",
+                  "pm.test('Each tool has name, description, inputSchema', () => {",
+                  "    pm.response.json().forEach(tool => {",
+                  "        pm.expect(tool.name).to.be.a('string').and.not.empty;",
+                  "        pm.expect(tool.description).to.be.a('string').and.not.empty;",
+                  "        pm.expect(tool.inputSchema).to.be.an('object');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/mcp/tools",
+              "host": ["{{base_url}}"],
+              "path": ["mcp", "tools"]
+            },
+            "description": "Introspects the registered ToolCallbackProvider and returns every MCP tool exposed by this server, with its JSON input schema — useful as a single discovery endpoint for any MCP-aware client."
           }
         }
       ]

@@ -34,7 +34,7 @@ class AuditServiceTest {
 
     @Test
     void record_savesAuditLogWithCorrectFields() {
-        UUID incidentId = UUID.randomUUID();
+        String incidentId = "INC1001";
 
         auditService.record(incidentId, IncidentStatus.OPEN, IncidentStatus.IN_PROGRESS, "alice", "taking it");
 
@@ -52,7 +52,7 @@ class AuditServiceTest {
 
     @Test
     void record_withNullNotes_savesWithNullNotes() {
-        UUID incidentId = UUID.randomUUID();
+        String incidentId = "INC1002";
 
         auditService.record(incidentId, IncidentStatus.IN_PROGRESS, IncidentStatus.RESOLVED, "bob", null);
 
@@ -63,7 +63,7 @@ class AuditServiceTest {
 
     @Test
     void getHistory_returnsEmptyListWhenNoLogs() {
-        UUID incidentId = UUID.randomUUID();
+        String incidentId = "INC1003";
         when(auditLogRepository.findByIncidentIdOrderByChangedAtAsc(incidentId)).thenReturn(List.of());
 
         List<AuditLogResponse> history = auditService.getHistory(incidentId);
@@ -73,7 +73,7 @@ class AuditServiceTest {
 
     @Test
     void getHistory_returnsMappedResponsesInOrder() {
-        UUID incidentId = UUID.randomUUID();
+        String incidentId = "INC1004";
         Instant t1 = Instant.now().minusSeconds(60);
         Instant t2 = Instant.now();
 

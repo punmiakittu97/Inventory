@@ -15,7 +15,6 @@ import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
-import java.util.UUID;
 
 /**
  * Thin MCP adapter — all business logic lives in IncidentService / AuditService.
@@ -48,11 +47,11 @@ public class IncidentMcpTools {
     }
 
     @Tool(name = "get_incident",
-          description = "Retrieve a single incident by its internal UUID.")
+          description = "Retrieve a single incident by its ID (e.g. INC1001).")
     public IncidentResponse getIncident(
-            @ToolParam(description = "Internal UUID of the incident") String id) {
+            @ToolParam(description = "Incident ID, e.g. INC1001") String id) {
         log.debug("event=MCP_TOOL_INVOKED tool=get_incident id={}", id);
-        return incidentService.getById(UUID.fromString(id));
+        return incidentService.getById(id);
     }
 
     @Tool(name = "list_incidents",
@@ -71,7 +70,7 @@ public class IncidentMcpTools {
     @Tool(name = "update_incident_status",
           description = "Update an incident's status. Allowed transitions: OPEN→IN_PROGRESS|ON_HOLD, IN_PROGRESS→RESOLVED|ON_HOLD, ON_HOLD→IN_PROGRESS|CLOSED, RESOLVED→CLOSED. Invalid transitions return HTTP 422.")
     public IncidentResponse updateIncidentStatus(
-            @ToolParam(description = "Internal UUID of the incident") String id,
+            @ToolParam(description = "Incident ID, e.g. INC1001") String id,
             @ToolParam(description = "Target status: IN_PROGRESS, ON_HOLD, RESOLVED, or CLOSED") String status,
             @ToolParam(description = "Name or ID of the person making the change") String changedBy,
             @ToolParam(description = "Optional notes about the change", required = false) String notes) {
@@ -81,14 +80,14 @@ public class IncidentMcpTools {
         req.setStatus(IncidentStatus.valueOf(status.toUpperCase()));
         req.setChangedBy(changedBy);
         req.setNotes(notes);
-        return incidentService.updateStatus(UUID.fromString(id), req);
+        return incidentService.updateStatus(id, req);
     }
 
     @Tool(name = "get_incident_history",
           description = "Retrieve the full audit trail for an incident, ordered by time ascending.")
     public List<AuditLogResponse> getIncidentHistory(
-            @ToolParam(description = "Internal UUID of the incident") String id) {
+            @ToolParam(description = "Incident ID, e.g. INC1001") String id) {
         log.debug("event=MCP_TOOL_INVOKED tool=get_incident_history id={}", id);
-        return auditService.getHistory(UUID.fromString(id));
+        return auditService.getHistory(id);
     }
 }

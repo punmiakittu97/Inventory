@@ -90,7 +90,7 @@ curl -s -X POST http://localhost:8080/incidents \
 ### GET /incidents/{id} — Get a single incident
 
 ```bash
-curl -s http://localhost:8080/incidents/<uuid> | jq .
+curl -s http://localhost:8080/incidents/<id> | jq .
 ```
 
 Returns `404` with a structured error body if not found.
@@ -122,22 +122,22 @@ Allowed transitions: `OPEN → IN_PROGRESS → RESOLVED → CLOSED`
 
 ```bash
 # Move to IN_PROGRESS
-curl -s -X PATCH http://localhost:8080/incidents/<uuid>/status \
+curl -s -X PATCH http://localhost:8080/incidents/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status":"IN_PROGRESS","changedBy":"ops-team","notes":"Investigating"}' | jq .
 
 # Resolve
-curl -s -X PATCH http://localhost:8080/incidents/<uuid>/status \
+curl -s -X PATCH http://localhost:8080/incidents/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status":"RESOLVED","changedBy":"ops-team","notes":"Root cause: disk full. Fixed."}' | jq .
 
 # Close
-curl -s -X PATCH http://localhost:8080/incidents/<uuid>/status \
+curl -s -X PATCH http://localhost:8080/incidents/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status":"CLOSED","changedBy":"manager"}' | jq .
 
 # Invalid transition (returns 422)
-curl -s -X PATCH http://localhost:8080/incidents/<uuid>/status \
+curl -s -X PATCH http://localhost:8080/incidents/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status":"CLOSED","changedBy":"ops"}' | jq .
 ```
@@ -145,7 +145,7 @@ curl -s -X PATCH http://localhost:8080/incidents/<uuid>/status \
 ### GET /incidents/{id}/history — Audit trail
 
 ```bash
-curl -s http://localhost:8080/incidents/<uuid>/history | jq .
+curl -s http://localhost:8080/incidents/<id>/history | jq .
 ```
 
 ---
@@ -162,7 +162,7 @@ The service exposes all capabilities as MCP tools over HTTP/SSE.
 | Tool name | Description |
 |---|---|
 | `create_incident` | Create a new incident (idempotent via externalReferenceId) |
-| `get_incident` | Retrieve an incident by UUID |
+| `get_incident` | Retrieve an incident by ID (e.g. INC1001) |
 | `list_incidents` | List incidents with optional severity/status/reportedBy filters |
 | `update_incident_status` | Transition incident status with audit trail |
 | `get_incident_history` | Retrieve full audit history ordered by time |

@@ -22,7 +22,7 @@ public class IncidentAuditLog {
     private UUID id;
 
     @Column(nullable = false)
-    private UUID incidentId;
+    private String incidentId;
 
     @Enumerated(EnumType.STRING)
     private IncidentStatus previousStatus;

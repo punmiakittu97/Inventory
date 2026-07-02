@@ -12,7 +12,7 @@ import java.util.UUID;
 public class AuditLogResponse {
 
     private UUID id;
-    private UUID incidentId;
+    private String incidentId;
     private IncidentStatus previousStatus;
     private IncidentStatus newStatus;
     private String changedBy;

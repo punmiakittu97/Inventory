@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
@@ -38,7 +37,7 @@ class IncidentMcpToolsTest {
     @Test
     void createIncident_delegatesToService() {
         IncidentResponse stub = IncidentResponse.builder()
-                .id(UUID.randomUUID()).title("DB down").severity(Severity.HIGH)
+                .id("INC1001").title("DB down").severity(Severity.HIGH)
                 .reportedBy("alice").status(IncidentStatus.OPEN).build();
 
         when(incidentService.create(any())).thenReturn(new IncidentService.CreateResult(stub, true));
@@ -54,11 +53,11 @@ class IncidentMcpToolsTest {
 
     @Test
     void getIncident_delegatesToService() {
-        UUID id = UUID.randomUUID();
+        String id = "INC1002";
         IncidentResponse stub = IncidentResponse.builder().id(id).build();
         when(incidentService.getById(id)).thenReturn(stub);
 
-        IncidentResponse result = tools.getIncident(id.toString());
+        IncidentResponse result = tools.getIncident(id);
         assertThat(result.getId()).isEqualTo(id);
     }
 
@@ -78,20 +77,20 @@ class IncidentMcpToolsTest {
 
     @Test
     void getIncidentHistory_delegatesToAuditService() {
-        UUID id = UUID.randomUUID();
+        String id = "INC1003";
         when(auditService.getHistory(id)).thenReturn(List.of());
-        tools.getIncidentHistory(id.toString());
+        tools.getIncidentHistory(id);
         verify(auditService).getHistory(id);
     }
 
     @Test
     void updateIncidentStatus_delegatesToService() {
-        UUID id = UUID.randomUUID();
+        String id = "INC1004";
         IncidentResponse stub = IncidentResponse.builder()
                 .id(id).status(IncidentStatus.IN_PROGRESS).build();
         when(incidentService.updateStatus(eq(id), any())).thenReturn(stub);
 
-        IncidentResponse result = tools.updateIncidentStatus(id.toString(), "IN_PROGRESS", "alice", "working on it");
+        IncidentResponse result = tools.updateIncidentStatus(id, "IN_PROGRESS", "alice", "working on it");
 
         assertThat(result.getStatus()).isEqualTo(IncidentStatus.IN_PROGRESS);
         verify(incidentService).updateStatus(eq(id), argThat(req ->
