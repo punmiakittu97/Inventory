@@ -1,0 +1,467 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Incident Intake API",
+    "description": "REST API for the Incident Intake microservice.\n\nBase URL variable: `base_url` (default: http://localhost:8080)\n\nWorkflow tip: run **Create Incident** first — the test script auto-saves the returned `id` into the `incident_id` collection variable so all subsequent requests are pre-filled.\n\nStatus transitions (feature/MVP):\n  OPEN → IN_PROGRESS | ON_HOLD\n  IN_PROGRESS → RESOLVED | ON_HOLD\n  ON_HOLD → IN_PROGRESS | CLOSED\n  RESOLVED → CLOSED",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "incident_id",
+      "value": "",
+      "type": "string",
+      "description": "Auto-populated by the Create Incident test script"
+    }
+  ],
+  "item": [
+    {
+      "name": "Incidents",
+      "item": [
+        {
+          "name": "Create Incident — CRITICAL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('Response has id', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.id).to.be.a('string');",
+                  "    pm.collectionVariables.set('incident_id', body.id);",
+                  "    console.log('incident_id set to', body.id);",
+                  "});",
+                  "pm.test('Status is OPEN', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('OPEN');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Database connection pool exhausted on prod-db-01\",\n  \"severity\": \"CRITICAL\",\n  \"reportedBy\": \"alice@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents",
+              "host": ["{{base_url}}"],
+              "path": ["incidents"]
+            },
+            "description": "Creates a new incident. Returns 201 on creation, 200 if the same externalReferenceId was already submitted (idempotency hit)."
+          }
+        },
+        {
+          "name": "Create Incident — HIGH (idempotent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201 or 200', () => {",
+                  "    pm.expect([200, 201]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test('externalReferenceId echoed back', () => {",
+                  "    pm.expect(pm.response.json().externalReferenceId).to.eql('EXT-REF-001');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Payment service latency spike\",\n  \"severity\": \"HIGH\",\n  \"reportedBy\": \"bob@example.com\",\n  \"externalReferenceId\": \"EXT-REF-001\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents",
+              "host": ["{{base_url}}"],
+              "path": ["incidents"]
+            },
+            "description": "Submit the same externalReferenceId twice to verify idempotency — the second call returns HTTP 200 with the existing record."
+          }
+        },
+        {
+          "name": "List All Incidents",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/incidents",
+              "host": ["{{base_url}}"],
+              "path": ["incidents"]
+            },
+            "description": "Returns all incidents. No filters applied."
+          }
+        },
+        {
+          "name": "List Incidents — filter by severity",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('All results are CRITICAL', () => {",
+                  "    pm.response.json().forEach(i => pm.expect(i.severity).to.eql('CRITICAL'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/incidents?severity=CRITICAL",
+              "host": ["{{base_url}}"],
+              "path": ["incidents"],
+              "query": [
+                { "key": "severity", "value": "CRITICAL", "description": "LOW | MEDIUM | HIGH | CRITICAL" },
+                { "key": "status", "value": "", "disabled": true, "description": "OPEN | IN_PROGRESS | ON_HOLD | RESOLVED | CLOSED" },
+                { "key": "reportedBy", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Filter by severity. Combine with `status` and `reportedBy` as needed."
+          }
+        },
+        {
+          "name": "List Incidents — filter by status ON_HOLD",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('All results are ON_HOLD', () => {",
+                  "    pm.response.json().forEach(i => pm.expect(i.status).to.eql('ON_HOLD'));",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/incidents?status=ON_HOLD",
+              "host": ["{{base_url}}"],
+              "path": ["incidents"],
+              "query": [
+                { "key": "status", "value": "ON_HOLD", "description": "OPEN | IN_PROGRESS | ON_HOLD | RESOLVED | CLOSED" },
+                { "key": "severity", "value": "", "disabled": true, "description": "LOW | MEDIUM | HIGH | CRITICAL" },
+                { "key": "reportedBy", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Filter incidents currently paused (ON_HOLD)."
+          }
+        },
+        {
+          "name": "Get Incident by ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('ID matches', () => {",
+                  "    const id = pm.collectionVariables.get('incident_id');",
+                  "    if (id) pm.expect(pm.response.json().id).to.eql(id);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/incidents/{{incident_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "{{incident_id}}"]
+            },
+            "description": "Retrieve a single incident. `incident_id` is auto-set by the Create Incident test script."
+          }
+        },
+        {
+          "name": "Update Status → IN_PROGRESS",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is IN_PROGRESS', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('IN_PROGRESS');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_PROGRESS\",\n  \"changedBy\": \"alice@example.com\",\n  \"notes\": \"Assigned to on-call team, investigating connection pool settings.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents/{{incident_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "{{incident_id}}", "status"]
+            },
+            "description": "Valid from OPEN. Moves the incident into active work."
+          }
+        },
+        {
+          "name": "Update Status → ON_HOLD",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is ON_HOLD', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('ON_HOLD');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"ON_HOLD\",\n  \"changedBy\": \"bob@example.com\",\n  \"notes\": \"Waiting for DBA approval before changing pool size.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents/{{incident_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "{{incident_id}}", "status"]
+            },
+            "description": "Valid from OPEN or IN_PROGRESS. Pauses work while preserving full context."
+          }
+        },
+        {
+          "name": "Update Status → RESOLVED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is RESOLVED', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('RESOLVED');",
+                  "});",
+                  "pm.test('resolvedAt is set', () => {",
+                  "    pm.expect(pm.response.json().resolvedAt).to.not.be.null;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"RESOLVED\",\n  \"changedBy\": \"alice@example.com\",\n  \"notes\": \"Increased pool size from 10 to 50, restarted app servers. Monitoring for 30 min.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents/{{incident_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "{{incident_id}}", "status"]
+            },
+            "description": "Valid from IN_PROGRESS. Sets `resolvedAt` timestamp."
+          }
+        },
+        {
+          "name": "Update Status → CLOSED",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is CLOSED', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('CLOSED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CLOSED\",\n  \"changedBy\": \"alice@example.com\",\n  \"notes\": \"Stable for 24 hours. Post-mortem scheduled.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents/{{incident_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "{{incident_id}}", "status"]
+            },
+            "description": "Valid from RESOLVED or ON_HOLD. Terminal state — no further transitions allowed."
+          }
+        },
+        {
+          "name": "Update Status — invalid transition (expect 422)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 422 Unprocessable Entity', () => pm.response.to.have.status(422));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"CLOSED\",\n  \"changedBy\": \"test-user\",\n  \"notes\": \"Trying to skip directly to CLOSED from OPEN\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/incidents/{{incident_id}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "{{incident_id}}", "status"]
+            },
+            "description": "Demonstrates the 422 response returned for illegal state transitions (e.g. OPEN → CLOSED). Run this against a freshly created (OPEN) incident."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Audit",
+      "item": [
+        {
+          "name": "Get Incident History",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Response is array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+                  "pm.test('Entries have required fields', () => {",
+                  "    pm.response.json().forEach(entry => {",
+                  "        pm.expect(entry).to.have.all.keys('previousStatus', 'newStatus', 'changedBy', 'changedAt');",
+                  "    });",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/incidents/{{incident_id}}/history",
+              "host": ["{{base_url}}"],
+              "path": ["incidents", "{{incident_id}}", "history"]
+            },
+            "description": "Returns the full chronological audit trail for an incident. Each entry records who changed what status and when, plus optional notes."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Actuator Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Status is UP', () => {",
+                  "    pm.expect(pm.response.json().status).to.eql('UP');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/health",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "health"]
+            },
+            "description": "Spring Boot Actuator health endpoint."
+          }
+        },
+        {
+          "name": "Actuator Info",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/info",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "info"]
+            }
+          }
+        },
+        {
+          "name": "Actuator Metrics",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/actuator/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["actuator", "metrics"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
