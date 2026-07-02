@@ -49,7 +49,7 @@ All files in this project were primarily AI-generated:
 
 ---
 
-## Key Prompts Used
+## Key Prompts Used [exact prompts available in prompts.md]
 
 The primary prompt was a detailed specification covering:
 - Build tool, Spring Boot version, Java version, packaging
