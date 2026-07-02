@@ -1,5 +1,7 @@
 package com.example.incidentintake;
 
+import com.example.incidentintake.chat.ChatNotConfiguredException;
+import com.example.incidentintake.chat.ChatUpstreamException;
 import com.example.incidentintake.common.exception.GlobalExceptionHandler;
 import com.example.incidentintake.common.exception.IncidentNotFoundException;
 import com.example.incidentintake.common.exception.InvalidStatusTransitionException;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -64,6 +67,23 @@ class GlobalExceptionHandlerTest {
                 .andExpect(jsonPath("$.fieldErrors").isArray());
     }
 
+    @Test
+    void chatNotConfigured_returns503WithGuidanceToSetKeyAndRestart() throws Exception {
+        mockMvc.perform(get("/test/chat-not-configured"))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.status").value(503))
+                .andExpect(jsonPath("$.message", containsString("spring.ai.anthropic.api-key")))
+                .andExpect(jsonPath("$.message", containsString("restart")));
+    }
+
+    @Test
+    void chatUpstreamFailure_returns502WithMessage() throws Exception {
+        mockMvc.perform(get("/test/chat-upstream-error"))
+                .andExpect(status().isBadGateway())
+                .andExpect(jsonPath("$.status").value(502))
+                .andExpect(jsonPath("$.message", containsString("Anthropic")));
+    }
+
     // Minimal controller that throws each exception type on demand
     @RestController
     @RequestMapping("/test")
@@ -82,6 +102,17 @@ class GlobalExceptionHandlerTest {
         @GetMapping("/runtime-error")
         void runtimeError() {
             throw new RuntimeException("something blew up");
+        }
+
+        @GetMapping("/chat-not-configured")
+        void chatNotConfigured() {
+            throw new ChatNotConfiguredException();
+        }
+
+        @GetMapping("/chat-upstream-error")
+        void chatUpstreamError() {
+            throw new ChatUpstreamException("The chat service could not complete the request via Anthropic: 401 Unauthorized",
+                    new RuntimeException("401 Unauthorized"));
         }
 
         @PostMapping("/validate")
