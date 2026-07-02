@@ -343,9 +343,9 @@
       <div class="mcp-card read">
         <div class="mcp-card-head"><span class="mcp-tool-name">get_incident</span><span class="mcp-badge read">READ</span></div>
         <div class="mcp-card-body">
-          <div class="mcp-desc">Retrieve a single incident by its internal UUID.</div>
+          <div class="mcp-desc">Retrieve a single incident by its ID (e.g. INC1001).</div>
           <div class="mcp-params">
-            <div class="mcp-param"><span class="mcp-param-name">id</span><span class="mcp-param-desc">Internal UUID of the incident</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">id</span><span class="mcp-param-desc">Incident ID, e.g. INC1001</span></div>
           </div>
         </div>
       </div>
@@ -365,7 +365,7 @@
         <div class="mcp-card-body">
           <div class="mcp-desc">Retrieve the full audit trail for an incident, ordered by time ascending.</div>
           <div class="mcp-params">
-            <div class="mcp-param"><span class="mcp-param-name">id</span><span class="mcp-param-desc">Internal UUID of the incident</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">id</span><span class="mcp-param-desc">Incident ID, e.g. INC1001</span></div>
           </div>
         </div>
       </div>
@@ -391,7 +391,7 @@
         <div class="mcp-card-body">
           <div class="mcp-desc">Advance an incident&#x27;s status. Valid transitions: OPEN&#x2192;IN_PROGRESS|ON_HOLD, IN_PROGRESS&#x2192;RESOLVED|ON_HOLD, ON_HOLD&#x2192;IN_PROGRESS|CLOSED, RESOLVED&#x2192;CLOSED. Invalid transitions return HTTP 422.</div>
           <div class="mcp-params">
-            <div class="mcp-param"><span class="mcp-param-name">id</span><span class="mcp-param-desc">Internal UUID of the incident</span></div>
+            <div class="mcp-param"><span class="mcp-param-name">id</span><span class="mcp-param-desc">Incident ID, e.g. INC1001</span></div>
             <div class="mcp-param"><span class="mcp-param-name">status</span><span class="mcp-param-desc">IN_PROGRESS &middot; ON_HOLD &middot; RESOLVED &middot; CLOSED</span></div>
             <div class="mcp-param"><span class="mcp-param-name">changedBy</span><span class="mcp-param-desc">Name or ID of the person making the change</span></div>
             <div class="mcp-param"><span class="mcp-param-name">notes</span><span class="mcp-param-opt">optional</span><span class="mcp-param-desc">Notes about the change</span></div>

@@ -9,6 +9,7 @@ import com.example.incidentintake.incident.api.dto.UpdateStatusRequest;
 import com.example.incidentintake.incident.domain.Incident;
 import com.example.incidentintake.incident.domain.IncidentStatus;
 import com.example.incidentintake.incident.domain.Severity;
+import com.example.incidentintake.incident.infrastructure.IncidentIdGenerator;
 import com.example.incidentintake.incident.infrastructure.IncidentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +30,7 @@ public class IncidentService {
 
     private final IncidentRepository incidentRepository;
     private final AuditService auditService;
+    private final IncidentIdGenerator idGenerator;
 
     /**
      * Idempotent creation: if externalReferenceId is supplied and an incident already exists
@@ -49,6 +50,7 @@ public class IncidentService {
         }
 
         Incident incident = Incident.builder()
+                .id(idGenerator.next())
                 .title(req.getTitle())
                 .severity(req.getSeverity())
                 .reportedBy(req.getReportedBy())
@@ -58,7 +60,7 @@ public class IncidentService {
         incident = incidentRepository.save(incident);
 
         try {
-            MDC.put("incidentId", incident.getId().toString());
+            MDC.put("incidentId", incident.getId());
             if (incident.getSeverity() == Severity.CRITICAL) {
                 log.warn("event=INCIDENT_CREATED id={} severity=CRITICAL title=\"{}\" reportedBy={}",
                         incident.getId(), incident.getTitle(), incident.getReportedBy());
@@ -74,7 +76,7 @@ public class IncidentService {
     }
 
     @Transactional(readOnly = true)
-    public IncidentResponse getById(UUID id) {
+    public IncidentResponse getById(String id) {
         IncidentResponse response = incidentRepository.findById(id)
                 .map(IncidentResponse::from)
                 .orElseThrow(() -> new IncidentNotFoundException(id));
@@ -99,7 +101,7 @@ public class IncidentService {
     }
 
     @Transactional
-    public IncidentResponse updateStatus(UUID id, UpdateStatusRequest req) {
+    public IncidentResponse updateStatus(String id, UpdateStatusRequest req) {
         Incident incident = incidentRepository.findById(id)
                 .orElseThrow(() -> new IncidentNotFoundException(id));
 
@@ -119,7 +121,7 @@ public class IncidentService {
         auditService.record(id, previous, next, req.getChangedBy(), req.getNotes());
 
         try {
-            MDC.put("incidentId", id.toString());
+            MDC.put("incidentId", id);
             log.info("event=INCIDENT_STATUS_CHANGED id={} from={} to={} changedBy={}",
                     id, previous, next, req.getChangedBy());
         } finally {

@@ -10,20 +10,20 @@ import com.example.incidentintake.incident.application.IncidentService;
 import com.example.incidentintake.incident.domain.Incident;
 import com.example.incidentintake.incident.domain.IncidentStatus;
 import com.example.incidentintake.incident.domain.Severity;
+import com.example.incidentintake.incident.infrastructure.IncidentIdGenerator;
 import com.example.incidentintake.incident.infrastructure.IncidentRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -35,32 +35,41 @@ class IncidentServiceTest {
 
     @Mock IncidentRepository incidentRepository;
     @Mock AuditService auditService;
+    @Mock IncidentIdGenerator idGenerator;
 
     IncidentService service;
 
+    private final AtomicInteger idSeq = new AtomicInteger(1000);
+
     @BeforeEach
     void setUp() {
-        service = new IncidentService(incidentRepository, auditService);
+        service = new IncidentService(incidentRepository, auditService, idGenerator);
+    }
+
+    private String nextId() {
+        return "INC" + idSeq.incrementAndGet();
     }
 
     // ── create ──────────────────────────────────────────────────────────────
 
     @Test
     void create_savesAndReturnsNewIncident() {
-        Incident saved = incident(UUID.randomUUID(), IncidentStatus.OPEN, Severity.HIGH);
+        when(idGenerator.next()).thenReturn("INC1001");
+        Incident saved = incident("INC1001", IncidentStatus.OPEN, Severity.HIGH);
         when(incidentRepository.save(any())).thenReturn(saved);
 
         CreateIncidentRequest req = createRequest("DB down", Severity.HIGH, "alice", null);
         IncidentService.CreateResult result = service.create(req);
 
         assertThat(result.created()).isTrue();
+        assertThat(result.response().getId()).isEqualTo("INC1001");
         assertThat(result.response().getStatus()).isEqualTo(IncidentStatus.OPEN);
         verify(incidentRepository).save(any(Incident.class));
     }
 
     @Test
     void create_idempotency_returnsExistingWhenExternalRefIdMatches() {
-        Incident existing = incident(UUID.randomUUID(), IncidentStatus.OPEN, Severity.HIGH);
+        Incident existing = incident(nextId(), IncidentStatus.OPEN, Severity.HIGH);
         when(incidentRepository.findByExternalReferenceId("EXT-1")).thenReturn(Optional.of(existing));
 
         CreateIncidentRequest req = createRequest("DB down", Severity.HIGH, "alice", "EXT-1");
@@ -69,11 +78,14 @@ class IncidentServiceTest {
         assertThat(result.created()).isFalse();
         assertThat(result.response().getId()).isEqualTo(existing.getId());
         verify(incidentRepository, never()).save(any());
+        verifyNoInteractions(idGenerator);
     }
 
     @Test
     void create_criticalSeverity_doesNotThrow() {
-        Incident saved = incident(UUID.randomUUID(), IncidentStatus.OPEN, Severity.CRITICAL);
+        String id = nextId();
+        when(idGenerator.next()).thenReturn(id);
+        Incident saved = incident(id, IncidentStatus.OPEN, Severity.CRITICAL);
         when(incidentRepository.save(any())).thenReturn(saved);
 
         CreateIncidentRequest req = createRequest("Critical outage", Severity.CRITICAL, "ops", null);
@@ -86,7 +98,7 @@ class IncidentServiceTest {
 
     @Test
     void getById_returnsResponseWhenFound() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         Incident inc = incident(id, IncidentStatus.OPEN, Severity.LOW);
         when(incidentRepository.findById(id)).thenReturn(Optional.of(inc));
 
@@ -97,7 +109,7 @@ class IncidentServiceTest {
 
     @Test
     void getById_throwsIncidentNotFoundWhenMissing() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         when(incidentRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.getById(id))
@@ -120,7 +132,7 @@ class IncidentServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     void list_withFilters_returnsMatchingIncidents() {
-        Incident inc = incident(UUID.randomUUID(), IncidentStatus.OPEN, Severity.HIGH);
+        Incident inc = incident(nextId(), IncidentStatus.OPEN, Severity.HIGH);
         when(incidentRepository.findAll(any(Specification.class))).thenReturn(List.of(inc));
 
         List<IncidentResponse> results = service.list(Severity.HIGH, IncidentStatus.OPEN, "alice");
@@ -133,7 +145,7 @@ class IncidentServiceTest {
 
     @Test
     void updateStatus_openToInProgress_succeeds() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         Incident inc = incident(id, IncidentStatus.OPEN, Severity.MEDIUM);
         when(incidentRepository.findById(id)).thenReturn(Optional.of(inc));
         when(incidentRepository.save(inc)).thenReturn(inc);
@@ -147,7 +159,7 @@ class IncidentServiceTest {
 
     @Test
     void updateStatus_openToOnHold_succeeds() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         Incident inc = incident(id, IncidentStatus.OPEN, Severity.MEDIUM);
         when(incidentRepository.findById(id)).thenReturn(Optional.of(inc));
         when(incidentRepository.save(inc)).thenReturn(inc);
@@ -162,7 +174,7 @@ class IncidentServiceTest {
 
     @Test
     void updateStatus_inProgressToOnHold_succeeds() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         Incident inc = incident(id, IncidentStatus.IN_PROGRESS, Severity.HIGH);
         when(incidentRepository.findById(id)).thenReturn(Optional.of(inc));
         when(incidentRepository.save(inc)).thenReturn(inc);
@@ -174,7 +186,7 @@ class IncidentServiceTest {
 
     @Test
     void updateStatus_onHoldToInProgress_succeeds() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         Incident inc = incident(id, IncidentStatus.ON_HOLD, Severity.HIGH);
         when(incidentRepository.findById(id)).thenReturn(Optional.of(inc));
         when(incidentRepository.save(inc)).thenReturn(inc);
@@ -186,7 +198,7 @@ class IncidentServiceTest {
 
     @Test
     void updateStatus_onHoldToClosed_succeeds() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         Incident inc = incident(id, IncidentStatus.ON_HOLD, Severity.HIGH);
         when(incidentRepository.findById(id)).thenReturn(Optional.of(inc));
         when(incidentRepository.save(inc)).thenReturn(inc);
@@ -198,7 +210,7 @@ class IncidentServiceTest {
 
     @Test
     void updateStatus_inProgressToResolved_setsResolvedAt() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         Incident inc = incident(id, IncidentStatus.IN_PROGRESS, Severity.MEDIUM);
         when(incidentRepository.findById(id)).thenReturn(Optional.of(inc));
         when(incidentRepository.save(inc)).thenReturn(inc);
@@ -211,7 +223,7 @@ class IncidentServiceTest {
     @ParameterizedTest
     @CsvSource({"RESOLVED", "CLOSED"})
     void updateStatus_openToTerminal_throwsInvalidTransition(String targetStatus) {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         Incident inc = incident(id, IncidentStatus.OPEN, Severity.LOW);
         when(incidentRepository.findById(id)).thenReturn(Optional.of(inc));
 
@@ -224,7 +236,7 @@ class IncidentServiceTest {
 
     @Test
     void updateStatus_closedToAnything_throwsInvalidTransition() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         Incident inc = incident(id, IncidentStatus.CLOSED, Severity.LOW);
         when(incidentRepository.findById(id)).thenReturn(Optional.of(inc));
 
@@ -234,7 +246,7 @@ class IncidentServiceTest {
 
     @Test
     void updateStatus_incidentNotFound_throwsIncidentNotFound() {
-        UUID id = UUID.randomUUID();
+        String id = nextId();
         when(incidentRepository.findById(id)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.updateStatus(id, updateRequest(IncidentStatus.IN_PROGRESS, "ops", null)))
@@ -243,21 +255,14 @@ class IncidentServiceTest {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
-    private Incident incident(UUID id, IncidentStatus status, Severity severity) {
+    private Incident incident(String id, IncidentStatus status, Severity severity) {
         Incident inc = Incident.builder()
+                .id(id)
                 .title("Test incident")
                 .severity(severity)
                 .reportedBy("tester")
                 .build();
         inc.setStatus(status);
-        // Set id via reflection since @GeneratedValue normally sets it
-        try {
-            var field = Incident.class.getDeclaredField("id");
-            field.setAccessible(true);
-            field.set(inc, id);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
         return inc;
     }
 

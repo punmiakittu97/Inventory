@@ -13,8 +13,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
-
 import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -91,7 +89,7 @@ class GlobalExceptionHandlerTest {
 
         @GetMapping("/not-found")
         void notFound() {
-            throw new IncidentNotFoundException(UUID.fromString("00000000-0000-0000-0000-000000000000"));
+            throw new IncidentNotFoundException("INC999999");
         }
 
         @GetMapping("/invalid-transition")

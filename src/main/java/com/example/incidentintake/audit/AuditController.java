@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/incidents")
@@ -14,7 +13,7 @@ public class AuditController {
     private final AuditService auditService;
 
     @GetMapping("/{id}/history")
-    public List<AuditLogResponse> getHistory(@PathVariable UUID id) {
+    public List<AuditLogResponse> getHistory(@PathVariable String id) {
         return auditService.getHistory(id);
     }
 }

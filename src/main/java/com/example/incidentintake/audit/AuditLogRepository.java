@@ -8,5 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface AuditLogRepository extends JpaRepository<IncidentAuditLog, UUID> {
-    List<IncidentAuditLog> findByIncidentIdOrderByChangedAtAsc(UUID incidentId);
+    List<IncidentAuditLog> findByIncidentIdOrderByChangedAtAsc(String incidentId);
 }

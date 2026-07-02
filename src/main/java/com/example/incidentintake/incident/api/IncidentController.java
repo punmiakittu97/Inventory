@@ -13,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/incidents")
@@ -30,7 +29,7 @@ public class IncidentController {
     }
 
     @GetMapping("/{id}")
-    public IncidentResponse getById(@PathVariable UUID id) {
+    public IncidentResponse getById(@PathVariable String id) {
         return incidentService.getById(id);
     }
 
@@ -43,7 +42,7 @@ public class IncidentController {
     }
 
     @PatchMapping("/{id}/status")
-    public IncidentResponse updateStatus(@PathVariable UUID id,
+    public IncidentResponse updateStatus(@PathVariable String id,
                                           @Valid @RequestBody UpdateStatusRequest req) {
         return incidentService.updateStatus(id, req);
     }
