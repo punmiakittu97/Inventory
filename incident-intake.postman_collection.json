@@ -2,14 +2,33 @@
   "info": {
     "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "name": "Incident Intake API",
-    "description": "REST API for the Incident Intake microservice.\n\nBase URL variable: `base_url` (default: http://localhost:8080)\n\nWorkflow tip: run **Create Incident** first — the test script auto-saves the returned `id` into the `incident_id` collection variable so all subsequent requests are pre-filled.\n\nStatus transitions (feature/MVP):\n  OPEN → IN_PROGRESS | ON_HOLD\n  IN_PROGRESS → RESOLVED | ON_HOLD\n  ON_HOLD → IN_PROGRESS | CLOSED\n  RESOLVED → CLOSED\n\nThe **Chat (Claude)** folder exercises the same flows through natural language against POST /chat, backed by an Anthropic Claude model wired to all five MCP tools (create_incident, get_incident, list_incidents, update_incident_status, get_incident_history). Run its requests in order — each one reuses `conversation_id`, auto-saved by the first chat request's test script, so the model retains context across turns.\n\nThe **MCP Context** folder hits GET /mcp/tools, which lists every registered MCP tool with its name, description, and JSON input schema.",
+    "description": "REST API for the Incident Intake microservice.\n\nBase URL variable: `base_url` (default: http://localhost:8080)\n\n**Authentication:** every endpoint except `/actuator/health` and `/h2-console` requires HTTP Basic auth. This collection applies Basic auth at the collection level using the `basic_auth_username` / `basic_auth_password` variables (defaults: `admin` / `changeme`, matching the service's default `application.properties`). All requests inherit it automatically — override the variables under the collection's Variables tab if the server is configured with different credentials (e.g. via `APP_SECURITY_USERNAME` / `APP_SECURITY_PASSWORD`).\n\nWorkflow tip: run **Create Incident** first — the test script auto-saves the returned `id` into the `incident_id` collection variable so all subsequent requests are pre-filled.\n\nStatus transitions (feature/MVP):\n  OPEN → IN_PROGRESS | ON_HOLD\n  IN_PROGRESS → RESOLVED | ON_HOLD\n  ON_HOLD → IN_PROGRESS | CLOSED\n  RESOLVED → CLOSED\n\nThe **Chat (Claude)** folder exercises the same flows through natural language against POST /chat, backed by an Anthropic Claude model wired to all five MCP tools (create_incident, get_incident, list_incidents, update_incident_status, get_incident_history). Run its requests in order — each one reuses `conversation_id`, auto-saved by the first chat request's test script, so the model retains context across turns.\n\nThe **MCP Context** folder hits GET /mcp/tools, which lists every registered MCP tool with its name, description, and JSON input schema.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "basic",
+    "basic": [
+      { "key": "username", "value": "{{basic_auth_username}}", "type": "string" },
+      { "key": "password", "value": "{{basic_auth_password}}", "type": "string" }
+    ]
   },
   "variable": [
     {
       "key": "base_url",
       "value": "http://localhost:8080",
       "type": "string"
+    },
+    {
+      "key": "basic_auth_username",
+      "value": "admin",
+      "type": "string",
+      "description": "HTTP Basic auth username. Matches app.security.username / APP_SECURITY_USERNAME on the server."
+    },
+    {
+      "key": "basic_auth_password",
+      "value": "changeme",
+      "type": "string",
+      "description": "HTTP Basic auth password. Matches app.security.password / APP_SECURITY_PASSWORD on the server."
     },
     {
       "key": "incident_id",

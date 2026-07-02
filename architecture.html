@@ -233,6 +233,7 @@
       <div class="pkg-header" style="color:#a78bfa; background:#a78bfa11">config</div>
       <div class="pkg-files">
         <div class="pkg-file"><span class="dot" style="background:#a78bfa"></span>McpToolsConfig</div>
+        <div class="pkg-file"><span class="dot" style="background:#a78bfa"></span>SecurityConfig</div>
       </div>
     </div>
   </div>
@@ -413,6 +414,11 @@
     </div>
     <div class="arrow-down"></div>
     <div class="arrow-label">HTTP / JSON</div>
+    <div class="layer">
+      <div class="layer-box" style="border-color:#a78bfa"><div class="label">Security</div><div class="name" style="color:#a78bfa">SecurityConfig &middot; HTTP Basic</div><div class="sub">All endpoints authenticated except /actuator/health &amp; /h2-console</div></div>
+    </div>
+    <div class="arrow-down"></div>
+    <div class="arrow-label">authenticated request</div>
     <div class="layer">
       <div class="layer-box rest"><div class="label">API Layer</div><div class="name">IncidentController &middot; AuditController</div><div class="sub">RequestLoggingFilter &middot; GlobalExceptionHandler</div></div>
     </div>

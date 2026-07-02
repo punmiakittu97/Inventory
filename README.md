@@ -47,6 +47,28 @@ mvn spring-boot:run -Dspring-boot.run.profiles=postgres
 
 ---
 
+## Authentication
+
+All endpoints require HTTP Basic auth, except `/actuator/health` and `/h2-console`.
+
+Default credentials (local dev): `admin` / `changeme`. Override via environment variables:
+
+```bash
+APP_SECURITY_USERNAME=myuser \
+APP_SECURITY_PASSWORD=mypass \
+mvn spring-boot:run
+```
+
+Include credentials on every request:
+
+```bash
+curl -s -u admin:changeme http://localhost:8080/incidents | jq .
+```
+
+Requests without valid credentials return `401 Unauthorized`.
+
+---
+
 ## Running Tests
 
 ```bash
@@ -77,12 +99,12 @@ java -jar target/incident-intake-0.0.1-SNAPSHOT.jar
 
 ```bash
 # Create (201)
-curl -s -X POST http://localhost:8080/incidents \
+curl -s -u admin:changeme -X POST http://localhost:8080/incidents \
   -H "Content-Type: application/json" \
   -d '{"title":"Database down","severity":"CRITICAL","reportedBy":"alice","externalReferenceId":"EXT-001"}' | jq .
 
 # Idempotent re-submit (200, same ID returned)
-curl -s -X POST http://localhost:8080/incidents \
+curl -s -u admin:changeme -X POST http://localhost:8080/incidents \
   -H "Content-Type: application/json" \
   -d '{"title":"Database down","severity":"CRITICAL","reportedBy":"alice","externalReferenceId":"EXT-001"}' | jq .
 ```
@@ -90,7 +112,7 @@ curl -s -X POST http://localhost:8080/incidents \
 ### GET /incidents/{id} — Get a single incident
 
 ```bash
-curl -s http://localhost:8080/incidents/<id> | jq .
+curl -s -u admin:changeme http://localhost:8080/incidents/<id> | jq .
 ```
 
 Returns `404` with a structured error body if not found.
@@ -101,19 +123,19 @@ All query parameters are optional and combinable:
 
 ```bash
 # All incidents
-curl -s http://localhost:8080/incidents | jq .
+curl -s -u admin:changeme http://localhost:8080/incidents | jq .
 
 # Filter by severity
-curl -s "http://localhost:8080/incidents?severity=CRITICAL" | jq .
+curl -s -u admin:changeme "http://localhost:8080/incidents?severity=CRITICAL" | jq .
 
 # Filter by status
-curl -s "http://localhost:8080/incidents?status=OPEN" | jq .
+curl -s -u admin:changeme "http://localhost:8080/incidents?status=OPEN" | jq .
 
 # Filter by reporter
-curl -s "http://localhost:8080/incidents?reportedBy=alice" | jq .
+curl -s -u admin:changeme "http://localhost:8080/incidents?reportedBy=alice" | jq .
 
 # Combined filter
-curl -s "http://localhost:8080/incidents?severity=HIGH&status=IN_PROGRESS" | jq .
+curl -s -u admin:changeme "http://localhost:8080/incidents?severity=HIGH&status=IN_PROGRESS" | jq .
 ```
 
 ### PATCH /incidents/{id}/status — Update status
@@ -122,22 +144,22 @@ Allowed transitions: `OPEN → IN_PROGRESS → RESOLVED → CLOSED`
 
 ```bash
 # Move to IN_PROGRESS
-curl -s -X PATCH http://localhost:8080/incidents/<id>/status \
+curl -s -u admin:changeme -X PATCH http://localhost:8080/incidents/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status":"IN_PROGRESS","changedBy":"ops-team","notes":"Investigating"}' | jq .
 
 # Resolve
-curl -s -X PATCH http://localhost:8080/incidents/<id>/status \
+curl -s -u admin:changeme -X PATCH http://localhost:8080/incidents/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status":"RESOLVED","changedBy":"ops-team","notes":"Root cause: disk full. Fixed."}' | jq .
 
 # Close
-curl -s -X PATCH http://localhost:8080/incidents/<id>/status \
+curl -s -u admin:changeme -X PATCH http://localhost:8080/incidents/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status":"CLOSED","changedBy":"manager"}' | jq .
 
 # Invalid transition (returns 422)
-curl -s -X PATCH http://localhost:8080/incidents/<id>/status \
+curl -s -u admin:changeme -X PATCH http://localhost:8080/incidents/<id>/status \
   -H "Content-Type: application/json" \
   -d '{"status":"CLOSED","changedBy":"ops"}' | jq .
 ```
@@ -145,14 +167,14 @@ curl -s -X PATCH http://localhost:8080/incidents/<id>/status \
 ### GET /incidents/{id}/history — Audit trail
 
 ```bash
-curl -s http://localhost:8080/incidents/<id>/history | jq .
+curl -s -u admin:changeme http://localhost:8080/incidents/<id>/history | jq .
 ```
 
 ---
 
 ## MCP Connection
 
-The service exposes all capabilities as MCP tools over HTTP/SSE.
+The service exposes all capabilities as MCP tools over HTTP/SSE. Like the REST API, MCP endpoints require HTTP Basic auth.
 
 **SSE endpoint:** `http://localhost:8080/sse`  
 **Message endpoint:** `http://localhost:8080/mcp/messages`
@@ -175,16 +197,24 @@ Add the following to your MCP client configuration (e.g. Claude Desktop `claude_
 {
   "mcpServers": {
     "incident-intake": {
-      "url": "http://localhost:8080/sse"
+      "url": "http://localhost:8080/sse",
+      "headers": {
+        "Authorization": "Basic YWRtaW46Y2hhbmdlbWU="
+      }
     }
   }
 }
 ```
 
+> The `Authorization` header value above is `admin:changeme` base64-encoded. Generate your own with `echo -n 'user:pass' | base64`.
+
 Or use the Spring AI MCP client:
 
 ```java
-var transport = new HttpSseClientTransport("http://localhost:8080/sse");
+var transport = HttpSseClientTransport.builder("http://localhost:8080")
+        .sseEndpoint("/sse")
+        .customizeClient(builder -> builder.defaultHeaders(h -> h.setBasicAuth("admin", "changeme")))
+        .build();
 var client = McpClient.sync(transport).build();
 client.initialize();
 // call tools...
@@ -194,8 +224,16 @@ client.initialize();
 
 ## Actuator Health
 
+`/actuator/health` is publicly accessible (no auth required):
+
 ```bash
 curl -s http://localhost:8080/actuator/health | jq .
+```
+
+Other actuator endpoints (`/actuator/info`, `/actuator/metrics`) require Basic auth like the rest of the API:
+
+```bash
+curl -s -u admin:changeme http://localhost:8080/actuator/metrics | jq .
 ```
 
 ---

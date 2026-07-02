@@ -2,7 +2,7 @@
 
 ## Test Suite Overview
 
-The project contains **8 test files** split across three categories.
+The project contains **14 test files** split across three categories.
 
 ---
 
@@ -15,6 +15,9 @@ The project contains **8 test files** split across three categories.
 | `AuditHistoryTest.java` | End-to-end audit log recording via the real application context |
 | `IncidentControllerTest.java` | HTTP layer + service + repository wired together |
 | `StatusTransitionTest.java` | State machine transitions through the full stack |
+| `ChatEndpointIntegrationTest.java` | POST /chat fails fast with a clear error when the Anthropic API key isn't configured |
+| `McpToolsEndpointIntegrationTest.java` | GET /mcp/tools returns all registered MCP tools with schemas |
+| `SecurityConfigTest.java` | HTTP Basic auth enforcement — 401 without/wrong credentials, 200 with valid credentials, public access to `/actuator/health` |
 
 ---
 
@@ -27,6 +30,9 @@ The project contains **8 test files** split across three categories.
 | `AuditServiceTest.java` | `AuditService` in isolation, mocking `AuditLogRepository` |
 | `IncidentServiceTest.java` | `IncidentService` in isolation, mocking `IncidentRepository` + `AuditService` |
 | `IncidentMcpToolsTest.java` | MCP tool layer in isolation, mocking `IncidentService` + `AuditService` |
+| `ChatControllerTest.java` | `ChatController` in isolation, mocking `ChatClient` + `ChatMemory` |
+| `IncidentIdGeneratorTest.java` | Human-readable `INC<number>` ID generation, mocking `IncidentRepository` |
+| `McpContextControllerTest.java` | MCP tool introspection endpoint, mocking `ToolCallbackProvider` |
 
 ---
 
@@ -45,10 +51,10 @@ The project contains **8 test files** split across three categories.
 
 | Category | Count |
 |---|---|
-| Integration tests (`@SpringBootTest`) | 3 |
-| Unit tests (Mockito) | 3 |
+| Integration tests (`@SpringBootTest`) | 6 |
+| Unit tests (Mockito) | 6 |
 | Unit tests (Plain JUnit) | 2 |
-| **Total test files** | **8** |
+| **Total test files** | **14** |
 
 ---
 
@@ -57,27 +63,20 @@ The project contains **8 test files** split across three categories.
 **Last run:** 2026-07-02
 
 ```
-Tests run: 60, Failures: 0, Errors: 0, Skipped: 0
-BUILD SUCCESS — Total time: 30.911 s
+Tests run: 89, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
 ```
 
 ---
 
 ## Code Coverage (JaCoCo)
 
-**Overall: 97% instruction coverage, 91% branch coverage** across 16 classes
+**Overall: 98% instruction coverage (1,316/1,336), 92% branch coverage (47/51)** across 25 classes.
 
-| Package | Instruction Cov. | Branch Cov. | Lines | Methods | Classes |
-|---|---|---|---|---|---|
-| `audit` | **100%** | n/a | 28 | 5 | 3 |
-| `mcp` | **100%** | **100%** | 22 | 6 | 1 |
-| `incident.domain` | **100%** | n/a | 4 | 2 | 2 |
-| `incident.api.dto` | **100%** | n/a | 11 | 1 | 1 |
-| `config` | **100%** | n/a | 2 | 2 | 1 |
-| `common.exception` | 99% | 50% | 28 | 12 | 3 |
-| `incident.application` | 98% | 94% | 67 | 15 | 2 |
-| `common.logging` | 93% | 50% | 17 | 3 | 1 |
-| `incident.api` | 86% | **100%** | 6 | 4 | 1 |
-| `(root — main class)` | 37% | n/a | 3 | 2 | 1 |
+Run `mvn test` to regenerate the report at `target/site/jacoco/index.html`.
 
-> The root package's 37% reflects the Spring Boot main class (`main` method), which is not exercised by unit/integration tests — this is expected and not a coverage concern.
+---
+
+## Authentication in Tests
+
+All `@SpringBootTest` classes that exercise the real HTTP stack via `MockMvc` (`AuditHistoryTest`, `ChatEndpointIntegrationTest`, `IncidentControllerTest`, `McpToolsEndpointIntegrationTest`, `StatusTransitionTest`) are annotated with `@WithMockUser` so requests pass Spring Security's authentication filter without needing real Basic auth headers on every call. `SecurityConfigTest` is the exception — it deliberately omits `@WithMockUser` to verify the real HTTP Basic auth flow (401 without/wrong credentials, 200 with valid ones).
