@@ -2,6 +2,7 @@ package com.example.incidentintake.audit;
 
 import com.example.incidentintake.incident.domain.IncidentStatus;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuditService {
 
     private final AuditLogRepository auditLogRepository;
@@ -28,13 +30,17 @@ public class AuditService {
                 .notes(notes)
                 .build();
         auditLogRepository.save(entry);
+        log.info("event=AUDIT_RECORD_CREATED incidentId={} from={} to={} changedBy={}",
+                incidentId, previous, next, changedBy);
     }
 
     @Transactional(readOnly = true)
     public List<AuditLogResponse> getHistory(UUID incidentId) {
-        return auditLogRepository.findByIncidentIdOrderByChangedAtAsc(incidentId)
+        List<AuditLogResponse> history = auditLogRepository.findByIncidentIdOrderByChangedAtAsc(incidentId)
                 .stream()
                 .map(AuditLogResponse::from)
                 .collect(Collectors.toList());
+        log.debug("event=AUDIT_HISTORY_FETCHED incidentId={} count={}", incidentId, history.size());
+        return history;
     }
 }

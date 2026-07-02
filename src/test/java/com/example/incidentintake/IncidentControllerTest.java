@@ -112,4 +112,43 @@ class IncidentControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].reportedBy").value("charlie"));
     }
+
+    @Test
+    void listIncidents_filterByStatusOnHold() throws Exception {
+        MvcResult created = mockMvc.perform(post("/incidents")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"E\",\"severity\":\"HIGH\",\"reportedBy\":\"dave\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+
+        String id = objectMapper.readTree(created.getResponse().getContentAsString()).get("id").asText();
+
+        mockMvc.perform(patch("/incidents/" + id + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"ON_HOLD\",\"changedBy\":\"dave\"}"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/incidents").param("status", "ON_HOLD"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].status").value("ON_HOLD"));
+    }
+
+    @Test
+    void listIncidents_combinedSeverityAndStatusFilter() throws Exception {
+        mockMvc.perform(post("/incidents")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"F\",\"severity\":\"CRITICAL\",\"reportedBy\":\"eve\"}"))
+                .andExpect(status().isCreated());
+        mockMvc.perform(post("/incidents")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"G\",\"severity\":\"LOW\",\"reportedBy\":\"eve\"}"))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/incidents")
+                        .param("severity", "CRITICAL")
+                        .param("reportedBy", "eve"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", org.hamcrest.Matchers.hasSize(1)))
+                .andExpect(jsonPath("$[0].severity").value("CRITICAL"));
+    }
 }

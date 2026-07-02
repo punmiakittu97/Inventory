@@ -75,22 +75,27 @@ public class IncidentService {
 
     @Transactional(readOnly = true)
     public IncidentResponse getById(UUID id) {
-        return incidentRepository.findById(id)
+        IncidentResponse response = incidentRepository.findById(id)
                 .map(IncidentResponse::from)
                 .orElseThrow(() -> new IncidentNotFoundException(id));
+        log.debug("event=INCIDENT_FETCHED id={}", id);
+        return response;
     }
 
     @Transactional(readOnly = true)
     public List<IncidentResponse> list(Severity severity, IncidentStatus status, String reportedBy) {
+        log.debug("event=INCIDENT_LIST_QUERY severity={} status={} reportedBy={}", severity, status, reportedBy);
         Specification<Incident> spec = Specification.where(
                 severityEquals(severity))
                 .and(statusEquals(status))
                 .and(reportedByEquals(reportedBy));
 
-        return incidentRepository.findAll(spec)
+        List<IncidentResponse> results = incidentRepository.findAll(spec)
                 .stream()
                 .map(IncidentResponse::from)
                 .collect(Collectors.toList());
+        log.debug("event=INCIDENT_LIST_RESULT count={}", results.size());
+        return results;
     }
 
     @Transactional

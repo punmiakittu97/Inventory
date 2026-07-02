@@ -9,6 +9,7 @@ import com.example.incidentintake.incident.application.IncidentService;
 import com.example.incidentintake.incident.domain.IncidentStatus;
 import com.example.incidentintake.incident.domain.Severity;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ import java.util.UUID;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class IncidentMcpTools {
 
     private final IncidentService incidentService;
@@ -35,6 +37,7 @@ public class IncidentMcpTools {
             @ToolParam(description = "Name or ID of the person reporting") String reportedBy,
             @ToolParam(description = "Optional external reference ID for idempotency", required = false) String externalReferenceId) {
 
+        log.debug("event=MCP_TOOL_INVOKED tool=create_incident severity={} reportedBy={}", severity, reportedBy);
         CreateIncidentRequest req = new CreateIncidentRequest();
         req.setTitle(title);
         req.setSeverity(Severity.valueOf(severity.toUpperCase()));
@@ -48,6 +51,7 @@ public class IncidentMcpTools {
           description = "Retrieve a single incident by its internal UUID.")
     public IncidentResponse getIncident(
             @ToolParam(description = "Internal UUID of the incident") String id) {
+        log.debug("event=MCP_TOOL_INVOKED tool=get_incident id={}", id);
         return incidentService.getById(UUID.fromString(id));
     }
 
@@ -58,6 +62,7 @@ public class IncidentMcpTools {
             @ToolParam(description = "Filter by status: OPEN, IN_PROGRESS, ON_HOLD, RESOLVED, CLOSED", required = false) String status,
             @ToolParam(description = "Filter by reportedBy", required = false) String reportedBy) {
 
+        log.debug("event=MCP_TOOL_INVOKED tool=list_incidents severity={} status={} reportedBy={}", severity, status, reportedBy);
         Severity sev = severity != null ? Severity.valueOf(severity.toUpperCase()) : null;
         IncidentStatus st = status != null ? IncidentStatus.valueOf(status.toUpperCase()) : null;
         return incidentService.list(sev, st, reportedBy);
@@ -71,6 +76,7 @@ public class IncidentMcpTools {
             @ToolParam(description = "Name or ID of the person making the change") String changedBy,
             @ToolParam(description = "Optional notes about the change", required = false) String notes) {
 
+        log.debug("event=MCP_TOOL_INVOKED tool=update_incident_status id={} status={} changedBy={}", id, status, changedBy);
         UpdateStatusRequest req = new UpdateStatusRequest();
         req.setStatus(IncidentStatus.valueOf(status.toUpperCase()));
         req.setChangedBy(changedBy);
@@ -82,6 +88,7 @@ public class IncidentMcpTools {
           description = "Retrieve the full audit trail for an incident, ordered by time ascending.")
     public List<AuditLogResponse> getIncidentHistory(
             @ToolParam(description = "Internal UUID of the incident") String id) {
+        log.debug("event=MCP_TOOL_INVOKED tool=get_incident_history id={}", id);
         return auditService.getHistory(UUID.fromString(id));
     }
 }

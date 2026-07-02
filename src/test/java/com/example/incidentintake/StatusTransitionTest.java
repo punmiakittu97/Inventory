@@ -94,6 +94,63 @@ class StatusTransitionTest {
                 .andExpect(status().isUnprocessableEntity());
     }
 
+    // ── ON_HOLD transitions ──────────────────────────────────────────────────
+
+    @Test
+    void validTransition_openToOnHold() throws Exception {
+        String id = createIncident();
+        mockMvc.perform(patch("/incidents/" + id + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"ON_HOLD\",\"changedBy\":\"ops\",\"notes\":\"waiting for approval\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ON_HOLD"));
+    }
+
+    @Test
+    void validTransition_inProgressToOnHold() throws Exception {
+        String id = createIncident();
+        patchStatus(id, "IN_PROGRESS");
+        mockMvc.perform(patch("/incidents/" + id + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"ON_HOLD\",\"changedBy\":\"ops\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ON_HOLD"));
+    }
+
+    @Test
+    void validTransition_onHoldToInProgress() throws Exception {
+        String id = createIncident();
+        patchStatus(id, "ON_HOLD");
+        mockMvc.perform(patch("/incidents/" + id + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"IN_PROGRESS\",\"changedBy\":\"ops\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("IN_PROGRESS"));
+    }
+
+    @Test
+    void validTransition_onHoldToClosed() throws Exception {
+        String id = createIncident();
+        patchStatus(id, "ON_HOLD");
+        mockMvc.perform(patch("/incidents/" + id + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"CLOSED\",\"changedBy\":\"ops\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("CLOSED"));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"OPEN", "RESOLVED"})
+    void invalidTransition_fromOnHold_returns422(String target) throws Exception {
+        String id = createIncident();
+        patchStatus(id, "ON_HOLD");
+        mockMvc.perform(patch("/incidents/" + id + "/status")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"status\":\"" + target + "\",\"changedBy\":\"ops\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value(422));
+    }
+
     private void patchStatus(String id, String status) throws Exception {
         mockMvc.perform(patch("/incidents/" + id + "/status")
                         .contentType(MediaType.APPLICATION_JSON)

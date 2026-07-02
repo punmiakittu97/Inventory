@@ -3,6 +3,7 @@ package com.example.incidentintake;
 import com.example.incidentintake.audit.AuditService;
 import com.example.incidentintake.incident.api.dto.CreateIncidentRequest;
 import com.example.incidentintake.incident.api.dto.IncidentResponse;
+import com.example.incidentintake.incident.api.dto.UpdateStatusRequest;
 import com.example.incidentintake.incident.application.IncidentService;
 import com.example.incidentintake.incident.domain.IncidentStatus;
 import com.example.incidentintake.incident.domain.Severity;
@@ -81,5 +82,28 @@ class IncidentMcpToolsTest {
         when(auditService.getHistory(id)).thenReturn(List.of());
         tools.getIncidentHistory(id.toString());
         verify(auditService).getHistory(id);
+    }
+
+    @Test
+    void updateIncidentStatus_delegatesToService() {
+        UUID id = UUID.randomUUID();
+        IncidentResponse stub = IncidentResponse.builder()
+                .id(id).status(IncidentStatus.IN_PROGRESS).build();
+        when(incidentService.updateStatus(eq(id), any())).thenReturn(stub);
+
+        IncidentResponse result = tools.updateIncidentStatus(id.toString(), "IN_PROGRESS", "alice", "working on it");
+
+        assertThat(result.getStatus()).isEqualTo(IncidentStatus.IN_PROGRESS);
+        verify(incidentService).updateStatus(eq(id), argThat(req ->
+                req.getStatus() == IncidentStatus.IN_PROGRESS
+                        && "alice".equals(req.getChangedBy())
+                        && "working on it".equals(req.getNotes())));
+    }
+
+    @Test
+    void listIncidents_withOnHoldFilter_parsesEnum() {
+        when(incidentService.list(null, IncidentStatus.ON_HOLD, null)).thenReturn(List.of());
+        tools.listIncidents(null, "ON_HOLD", null);
+        verify(incidentService).list(null, IncidentStatus.ON_HOLD, null);
     }
 }

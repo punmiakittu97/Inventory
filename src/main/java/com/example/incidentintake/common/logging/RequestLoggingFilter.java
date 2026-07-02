@@ -24,14 +24,17 @@ public class RequestLoggingFilter implements Filter {
 
         String requestId = UUID.randomUUID().toString();
         MDC.put("requestId", requestId);
+        response.setHeader("X-Request-Id", requestId);
 
         long start = System.currentTimeMillis();
         try {
             chain.doFilter(req, res);
         } finally {
             long durationMs = System.currentTimeMillis() - start;
+            String query = request.getQueryString();
+            String fullPath = query != null ? request.getRequestURI() + "?" + query : request.getRequestURI();
             log.info("method={} path={} status={} durationMs={} requestId={}",
-                    request.getMethod(), request.getRequestURI(),
+                    request.getMethod(), fullPath,
                     response.getStatus(), durationMs, requestId);
             MDC.clear();
         }
