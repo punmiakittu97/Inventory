@@ -3,6 +3,6 @@ target/
 *.jar
 *.war
 *.ear
-.idea/
+.idea/**
 *.iml
 .DS_Store
